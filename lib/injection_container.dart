@@ -11,6 +11,7 @@ import 'features/dashboard/domain/usecases/get_category_breakdown.dart';
 import 'features/dashboard/domain/usecases/get_month_summary.dart';
 import 'features/dashboard/domain/usecases/get_net_worth.dart';
 import 'features/dashboard/domain/usecases/get_recent_transactions.dart';
+import 'features/dashboard/presentation/cubit/dashboard_cubit.dart';
 import 'features/transaction/data/repositories/transaction_repository_impl.dart';
 import 'features/transaction/domain/repositories/transaction_repository.dart';
 import 'features/transaction/domain/usecases/add_expense.dart';
@@ -142,6 +143,16 @@ Future<void> initDependencies() async {
     ..registerFactory<TransactionListCubit>(
       () => TransactionListCubit(
         getRecentTransactions: sl(),
+        ledgerBus: sl(),
+      ),
+    )
+    ..registerFactory<DashboardCubit>(
+      () => DashboardCubit(
+        getNetWorth: sl(),
+        getMonthSummary: sl(),
+        getCategoryBreakdown: sl(),
+        getRecentTransactions: sl(),
+        wallets: sl(),
         ledgerBus: sl(),
       ),
     );
