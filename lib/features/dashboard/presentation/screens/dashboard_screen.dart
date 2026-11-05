@@ -1,9 +1,11 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import 'package:multi_wallet_tracker/core/money/money.dart';
+import 'package:multi_wallet_tracker/core/notifications/notification_spike.dart';
 import 'package:multi_wallet_tracker/features/dashboard/domain/entities/category_breakdown.dart';
 import 'package:multi_wallet_tracker/features/dashboard/domain/entities/dashboard_transaction.dart';
 import 'package:multi_wallet_tracker/features/dashboard/domain/entities/month_summary.dart';
@@ -49,12 +51,33 @@ class DashboardScreen extends StatelessWidget {
     }
   }
 
+  Future<void> _scheduleNotificationSpike(BuildContext context) async {
+    final String message = await NotificationSpike.scheduleTest();
+    if (!context.mounted) {
+      return;
+    }
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocProvider<DashboardCubit>.value(
       value: cubit,
       child: Scaffold(
-        appBar: AppBar(title: const Text('Dashboard')),
+        appBar: AppBar(
+          title: const Text('Dashboard'),
+          actions: kDebugMode
+              ? <Widget>[
+                  IconButton(
+                    tooltip: 'Test notification',
+                    onPressed: () => _scheduleNotificationSpike(context),
+                    icon: const Icon(Icons.notifications_active_outlined),
+                  ),
+                ]
+              : null,
+        ),
         floatingActionButton: FloatingActionButton.extended(
           onPressed: () => _addTransaction(context),
           icon: const Icon(Icons.add),
