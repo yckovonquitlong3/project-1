@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 
 import 'core/theme/app_theme.dart';
+import 'features/wallet/presentation/cubit/wallet_cubit.dart';
+import 'features/wallet/presentation/screens/wallet_list_screen.dart';
 
 class MultiWalletApp extends StatelessWidget {
-  const MultiWalletApp({super.key});
+  const MultiWalletApp({required this.walletCubit, super.key});
+
+  final WalletCubit walletCubit;
 
   @override
   Widget build(BuildContext context) {
@@ -12,19 +16,7 @@ class MultiWalletApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,
-      home: const _BootstrapPlaceholder(),
-    );
-  }
-}
-
-class _BootstrapPlaceholder extends StatelessWidget {
-  const _BootstrapPlaceholder();
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Multi-Wallet Tracker')),
-      body: const Center(child: Text('Ledger setup in progress')),
+      home: WalletListScreen(cubit: walletCubit),
     );
   }
 }

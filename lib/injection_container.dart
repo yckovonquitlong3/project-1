@@ -23,8 +23,11 @@ import 'features/wallet/domain/repositories/wallet_repository.dart';
 import 'features/wallet/domain/usecases/archive_wallet.dart';
 import 'features/wallet/domain/usecases/create_wallet.dart';
 import 'features/wallet/domain/usecases/delete_wallet.dart';
+import 'features/wallet/domain/usecases/get_wallets.dart';
+import 'features/wallet/domain/usecases/has_transactions.dart';
 import 'features/wallet/domain/usecases/restore_wallet.dart';
 import 'features/wallet/domain/usecases/update_wallet.dart';
+import 'features/wallet/presentation/cubit/wallet_cubit.dart';
 
 /// Global service locator.
 ///
@@ -53,6 +56,10 @@ Future<void> initDependencies() async {
     ..registerLazySingleton<ArchiveWallet>(() => ArchiveWallet(wallets: sl()))
     ..registerLazySingleton<RestoreWallet>(() => RestoreWallet(wallets: sl()))
     ..registerLazySingleton<DeleteWallet>(() => DeleteWallet(wallets: sl()))
+    ..registerLazySingleton<GetWallets>(() => GetWallets(wallets: sl()))
+    ..registerLazySingleton<HasTransactions>(
+      () => HasTransactions(wallets: sl()),
+    )
     ..registerLazySingleton<AddExpense>(
       () => AddExpense(
         transactions: sl(),
@@ -92,6 +99,18 @@ Future<void> initDependencies() async {
     )
     ..registerLazySingleton<GetRecentTransactions>(
       () => GetRecentTransactions(dashboard: sl()),
+    )
+    ..registerFactory<WalletCubit>(
+      () => WalletCubit(
+        getWallets: sl(),
+        createWallet: sl(),
+        updateWallet: sl(),
+        archiveWallet: sl(),
+        restoreWallet: sl(),
+        deleteWallet: sl(),
+        hasTransactions: sl(),
+        ledgerBus: sl(),
+      ),
     );
 
   // Open the database during startup so migrations and seeding finish before
