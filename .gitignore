@@ -39,3 +39,15 @@ desktop.ini
 # Misc
 *.log
 .cache/
+
+# Flutter / Dart
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+*.iml
+.idea/
+**/doc/api/
+*.class
+migrate_working_dir/
