@@ -15,7 +15,7 @@ abstract final class NotificationSpike {
 
   static bool _initialized = false;
 
-  static Future<String> scheduleTest() async {
+  static Future<String> scheduleTest({int minutes = 2}) async {
     try {
       await _initialize();
 
@@ -29,7 +29,7 @@ abstract final class NotificationSpike {
       }
 
       final tz.TZDateTime when =
-          tz.TZDateTime.now(tz.local).add(const Duration(minutes: 2));
+          tz.TZDateTime.now(tz.local).add(Duration(minutes: minutes));
       final String time = '${when.hour.toString().padLeft(2, '0')}:'
           '${when.minute.toString().padLeft(2, '0')}';
       final int id = DateTime.now().millisecondsSinceEpoch.remainder(1000000);

@@ -13,7 +13,7 @@
 | App process killed (`adb shell am kill`) | Passed; notification posted with a new ID after the process was gone |
 | Notification tap | Opened `MainActivity` |
 | Inexact timing | Scheduled 03:05, observed by ~03:07–03:08; expect a few minutes of delay |
-| Reboot rescheduling | Pending manual check |
+| Reboot rescheduling | Passed with a 10-minute lead: scheduled 03:32, received 03:35 (about 3 minutes late) |
 | Force-stop | Expected to cancel alarms; not tested (documented Android behavior) |
 | Android 13 runtime permission | Not testable on this Android 12 device |
 | Uninstall | Cancels every alarm and wipes app data |

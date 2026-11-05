@@ -52,7 +52,34 @@ class DashboardScreen extends StatelessWidget {
   }
 
   Future<void> _scheduleNotificationSpike(BuildContext context) async {
-    final String message = await NotificationSpike.scheduleTest();
+    final int? minutes = await showDialog<int>(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return SimpleDialog(
+          title: const Text('Notification spike'),
+          children: <Widget>[
+            SimpleDialogOption(
+              onPressed: () => Navigator.of(dialogContext).pop(2),
+              child: const Text('2 minutes ahead'),
+            ),
+            SimpleDialogOption(
+              onPressed: () => Navigator.of(dialogContext).pop(10),
+              child: const Text('10 minutes ahead (reboot test)'),
+            ),
+            SimpleDialogOption(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('Cancel'),
+            ),
+          ],
+        );
+      },
+    );
+    if (minutes == null || !context.mounted) {
+      return;
+    }
+
+    final String message =
+        await NotificationSpike.scheduleTest(minutes: minutes);
     if (!context.mounted) {
       return;
     }
