@@ -1,6 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <application
-        android:label="multi_wallet_tracker"
+        android:label="Multi-Wallet Tracker"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
