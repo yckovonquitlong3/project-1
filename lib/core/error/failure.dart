@@ -1,0 +1,31 @@
+/// Domain-level failures. Repositories throw these instead of leaking
+/// `sqflite` exceptions into the presentation layer.
+sealed class Failure implements Exception {
+  const Failure(this.message, {this.cause});
+
+  final String message;
+  final Object? cause;
+
+  @override
+  String toString() => '$runtimeType: $message';
+}
+
+/// Input did not satisfy a business rule (amount, wallet, category).
+final class ValidationFailure extends Failure {
+  const ValidationFailure(super.message, {super.cause});
+}
+
+/// A referenced entity does not exist (or was archived and is unusable).
+final class NotFoundFailure extends Failure {
+  const NotFoundFailure(super.message, {super.cause});
+}
+
+/// A state conflict, e.g. deleting a wallet that still has transactions.
+final class ConflictFailure extends Failure {
+  const ConflictFailure(super.message, {super.cause});
+}
+
+/// The database rejected an operation or became unavailable.
+final class DatabaseFailure extends Failure {
+  const DatabaseFailure(super.message, {super.cause});
+}
