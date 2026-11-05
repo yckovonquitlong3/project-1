@@ -292,6 +292,26 @@ void main() {
       expect(await verifyBalances(), isEmpty);
     });
 
+    test('keeps history editable after its wallet is archived', () async {
+      final Wallet wallet = await seedWallet('GCash', openingMinor: 100000);
+      final TransactionRecord created = await addExpense(
+        amount: const Money(15000),
+        walletId: wallet.id,
+        categoryId: expenseCategory,
+      );
+      await archiveWallet(wallet.id);
+      final TransactionRecord stored = (await transactions.byId(created.id))!;
+
+      final TransactionRecord updated = await editTransaction(
+        previous: stored,
+        amount: const Money(10000),
+      );
+
+      expect(updated.amount, const Money(10000));
+      expect(await balanceOf(wallet.id), const Money(90000));
+      expect(await verifyBalances(), isEmpty);
+    });
+
     test('rejects zero on edit and leaves the old row intact', () async {
       final Wallet wallet = await seedWallet('GCash', openingMinor: 100000);
       final TransactionRecord created = await addExpense(

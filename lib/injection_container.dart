@@ -4,6 +4,7 @@ import 'core/database/app_database.dart';
 import 'core/ledger/ledger_bus.dart';
 import 'features/category/data/repositories/category_repository_impl.dart';
 import 'features/category/domain/repositories/category_repository.dart';
+import 'features/category/domain/usecases/get_categories.dart';
 import 'features/dashboard/data/repositories/dashboard_repository_impl.dart';
 import 'features/dashboard/domain/repositories/dashboard_repository.dart';
 import 'features/dashboard/domain/usecases/get_category_breakdown.dart';
@@ -16,8 +17,12 @@ import 'features/transaction/domain/usecases/add_expense.dart';
 import 'features/transaction/domain/usecases/add_income.dart';
 import 'features/transaction/domain/usecases/delete_transaction.dart';
 import 'features/transaction/domain/usecases/edit_transaction.dart';
+import 'features/transaction/domain/usecases/get_recent_transaction_records.dart';
+import 'features/transaction/domain/usecases/get_transaction_detail.dart';
 import 'features/transaction/domain/usecases/transfer_money.dart';
 import 'features/transaction/domain/usecases/verify_balances.dart';
+import 'features/transaction/presentation/cubit/transaction_cubit.dart';
+import 'features/transaction/presentation/cubit/transaction_list_cubit.dart';
 import 'features/wallet/data/repositories/wallet_repository_impl.dart';
 import 'features/wallet/domain/repositories/wallet_repository.dart';
 import 'features/wallet/domain/usecases/archive_wallet.dart';
@@ -47,6 +52,9 @@ Future<void> initDependencies() async {
     )
     ..registerLazySingleton<CategoryRepository>(
       () => CategoryRepositoryImpl(database: sl()),
+    )
+    ..registerLazySingleton<GetCategories>(
+      () => GetCategories(categories: sl()),
     )
     ..registerLazySingleton<DashboardRepository>(
       () => DashboardRepositoryImpl(database: sl()),
@@ -90,6 +98,16 @@ Future<void> initDependencies() async {
     ..registerLazySingleton<VerifyBalances>(
       () => VerifyBalances(transactions: sl()),
     )
+    ..registerLazySingleton<GetRecentTransactionRecords>(
+      () => GetRecentTransactionRecords(transactions: sl()),
+    )
+    ..registerLazySingleton<GetTransactionDetail>(
+      () => GetTransactionDetail(
+        transactions: sl(),
+        wallets: sl(),
+        categories: sl(),
+      ),
+    )
     ..registerLazySingleton<GetNetWorth>(() => GetNetWorth(dashboard: sl()))
     ..registerLazySingleton<GetMonthSummary>(
       () => GetMonthSummary(dashboard: sl()),
@@ -109,6 +127,21 @@ Future<void> initDependencies() async {
         restoreWallet: sl(),
         deleteWallet: sl(),
         hasTransactions: sl(),
+        ledgerBus: sl(),
+      ),
+    )
+    ..registerFactory<TransactionCubit>(
+      () => TransactionCubit(
+        addExpense: sl(),
+        addIncome: sl(),
+        transferMoney: sl(),
+        editTransaction: sl(),
+        deleteTransaction: sl(),
+      ),
+    )
+    ..registerFactory<TransactionListCubit>(
+      () => TransactionListCubit(
+        getRecentTransactions: sl(),
         ledgerBus: sl(),
       ),
     );

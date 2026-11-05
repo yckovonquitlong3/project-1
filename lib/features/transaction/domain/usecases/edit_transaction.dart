@@ -52,23 +52,34 @@ final class EditTransaction {
         if (category == null) {
           throw const ValidationFailure('Choose a category');
         }
-        await requireActiveWallet(_walletRepo, source);
-        await requireActiveCategory(
-          _categoryRepo,
-          category,
-          CategoryType.expense,
-        );
+        // An unchanged wallet/category may have been archived since the
+        // transaction was written; history must stay editable. Only a *new*
+        // reference has to be active.
+        if (source != previous.sourceWalletId) {
+          await requireActiveWallet(_walletRepo, source);
+        }
+        if (category != previous.categoryId) {
+          await requireActiveCategory(
+            _categoryRepo,
+            category,
+            CategoryType.expense,
+          );
+        }
       case TransactionType.income:
         category = categoryId ?? previous.categoryId;
         if (category == null) {
           throw const ValidationFailure('Choose a category');
         }
-        await requireActiveWallet(_walletRepo, source);
-        await requireActiveCategory(
-          _categoryRepo,
-          category,
-          CategoryType.income,
-        );
+        if (source != previous.sourceWalletId) {
+          await requireActiveWallet(_walletRepo, source);
+        }
+        if (category != previous.categoryId) {
+          await requireActiveCategory(
+            _categoryRepo,
+            category,
+            CategoryType.income,
+          );
+        }
       case TransactionType.transfer:
         target = targetWalletId ?? previous.targetWalletId;
         if (target == null) {
@@ -77,8 +88,12 @@ final class EditTransaction {
         if (target == source) {
           throw const ValidationFailure('Choose two different wallets');
         }
-        await requireActiveWallet(_walletRepo, source);
-        await requireActiveWallet(_walletRepo, target);
+        if (source != previous.sourceWalletId) {
+          await requireActiveWallet(_walletRepo, source);
+        }
+        if (target != previous.targetWalletId) {
+          await requireActiveWallet(_walletRepo, target);
+        }
     }
 
     final DateTime when = occurredAt ?? previous.occurredAt;

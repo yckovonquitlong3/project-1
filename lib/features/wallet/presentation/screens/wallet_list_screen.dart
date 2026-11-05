@@ -6,6 +6,8 @@ import 'package:multi_wallet_tracker/features/wallet/presentation/cubit/wallet_c
 import 'package:multi_wallet_tracker/features/wallet/presentation/cubit/wallet_state.dart';
 import 'package:multi_wallet_tracker/features/wallet/presentation/widgets/wallet_card.dart';
 import 'package:multi_wallet_tracker/features/wallet/presentation/widgets/wallet_form_sheet.dart';
+import 'package:multi_wallet_tracker/features/transaction/presentation/screens/add_transaction_screen.dart';
+import 'package:multi_wallet_tracker/features/transaction/presentation/screens/transactions_screen.dart';
 
 class WalletListScreen extends StatelessWidget {
   const WalletListScreen({required this.cubit, super.key});
@@ -27,7 +29,21 @@ class _WalletListView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Wallets')),
+      appBar: AppBar(
+        title: const Text('Wallets'),
+        actions: <Widget>[
+          IconButton(
+            tooltip: 'Activity',
+            onPressed: () => _openActivity(context),
+            icon: const Icon(Icons.receipt_long_outlined),
+          ),
+          IconButton(
+            tooltip: 'Add transaction',
+            onPressed: () => _openAddTransaction(context),
+            icon: const Icon(Icons.add_card_outlined),
+          ),
+        ],
+      ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _openWalletForm(context),
         icon: const Icon(Icons.add),
@@ -272,6 +288,22 @@ class _FailureView extends StatelessWidget {
       ),
     );
   }
+}
+
+Future<void> _openActivity(BuildContext context) async {
+  await Navigator.of(context).push<void>(
+    MaterialPageRoute<void>(
+      builder: (BuildContext context) => const TransactionsScreen(),
+    ),
+  );
+}
+
+Future<void> _openAddTransaction(BuildContext context) async {
+  await Navigator.of(context).push<bool>(
+    MaterialPageRoute<bool>(
+      builder: (BuildContext context) => const AddTransactionScreen(),
+    ),
+  );
 }
 
 Future<void> _openWalletForm(BuildContext context, {Wallet? wallet}) async {
