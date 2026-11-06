@@ -2,7 +2,7 @@ import 'package:sqflite/sqflite.dart';
 
 /// Current schema version. Bump on every schema change and add a step to
 /// [migrate].
-const int kSchemaVersion = 1;
+const int kSchemaVersion = 2;
 
 const List<String> _schemaV1 = <String>[
   '''
@@ -56,6 +56,56 @@ CREATE TABLE transactions (
   'CREATE INDEX idx_tx_local_date ON transactions(local_date)',
 ];
 
+/// V1 -> V2. Additive only: existing rows are preserved and default to
+/// `fee_minor = 0` with no subscription link.
+const List<String> _schemaV2 = <String>[
+  '''
+CREATE TABLE subscriptions (
+  id                     TEXT PRIMARY KEY,
+  name                   TEXT NOT NULL,
+  amount_minor           INTEGER NOT NULL CHECK (amount_minor > 0),
+  wallet_id              TEXT NOT NULL REFERENCES wallets(id)    ON DELETE RESTRICT,
+  category_id            TEXT NOT NULL REFERENCES categories(id) ON DELETE RESTRICT,
+  billing_cycle          TEXT NOT NULL CHECK (billing_cycle IN ('WEEKLY','MONTHLY','YEARLY')),
+  next_billing_at_ms     INTEGER NOT NULL,
+  billing_anchor_day     INTEGER NOT NULL CHECK (billing_anchor_day BETWEEN 1 AND 31),
+  billing_time_minutes   INTEGER NOT NULL CHECK (billing_time_minutes BETWEEN 0 AND 1439),
+  auto_deduct            INTEGER NOT NULL DEFAULT 1 CHECK (auto_deduct IN (0,1)),
+  is_active              INTEGER NOT NULL DEFAULT 1 CHECK (is_active IN (0,1)),
+  is_overdue             INTEGER NOT NULL DEFAULT 0 CHECK (is_overdue IN (0,1)),
+  last_paid_at_ms        INTEGER,
+  last_failure_reason    TEXT CHECK (
+    last_failure_reason IS NULL OR last_failure_reason IN (
+      'INSUFFICIENT_BALANCE',
+      'WALLET_ARCHIVED',
+      'CATEGORY_ARCHIVED',
+      'MANUAL_PAYMENT_REQUIRED'
+    )
+  ),
+  last_notified_at_ms    INTEGER,
+  created_at_ms          INTEGER NOT NULL,
+  updated_at_ms          INTEGER NOT NULL
+)
+''',
+  'CREATE INDEX idx_sub_due ON subscriptions(is_active, next_billing_at_ms)',
+  'CREATE INDEX idx_sub_wallet ON subscriptions(wallet_id)',
+  'CREATE INDEX idx_sub_category ON subscriptions(category_id)',
+  '''
+ALTER TABLE transactions ADD COLUMN fee_minor INTEGER NOT NULL DEFAULT 0
+  CHECK (fee_minor >= 0 AND (fee_minor = 0 OR transaction_type = 'TRANSFER'))
+''',
+  '''
+ALTER TABLE transactions ADD COLUMN subscription_id TEXT
+  REFERENCES subscriptions(id) ON DELETE RESTRICT
+''',
+  'ALTER TABLE transactions ADD COLUMN billing_period TEXT',
+  '''
+CREATE UNIQUE INDEX idx_tx_subscription_period
+  ON transactions(subscription_id, billing_period)
+  WHERE subscription_id IS NOT NULL
+''',
+];
+
 Future<void> createSchemaV1(Database db) async {
   for (final String statement in _schemaV1) {
     await db.execute(statement);
@@ -63,12 +113,18 @@ Future<void> createSchemaV1(Database db) async {
 }
 
 /// Forward-only migrations. Called by sqflite when the stored `user_version`
-/// is lower than [kSchemaVersion].
+/// is lower than [kSchemaVersion]. `onCreate` also uses this with
+/// `oldVersion = 0`, so fresh installs and upgrades share one path.
 Future<void> migrate(Database db, int oldVersion, int newVersion) async {
   for (int version = oldVersion + 1; version <= newVersion; version++) {
     switch (version) {
       case 1:
         await createSchemaV1(db);
+        break;
+      case 2:
+        for (final String statement in _schemaV2) {
+          await db.execute(statement);
+        }
         break;
       default:
         throw StateError('No migration defined for schema version $version');

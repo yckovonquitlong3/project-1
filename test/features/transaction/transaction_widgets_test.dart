@@ -77,7 +77,11 @@ void main() {
     await tester.tap(find.text('Transfer'));
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextFormField).first, '100');
-    await tester.tap(find.widgetWithText(FilledButton, 'Add transaction'));
+    final Finder saveButton =
+        find.widgetWithText(FilledButton, 'Add transaction');
+    await tester.ensureVisible(saveButton);
+    await tester.pumpAndSettle();
+    await tester.tap(saveButton);
     await tester.pump();
 
     expect(find.text('Choose a destination wallet'), findsOneWidget);

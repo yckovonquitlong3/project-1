@@ -38,7 +38,55 @@ void main() {
       "SELECT name FROM sqlite_master WHERE type = 'index' "
       "AND name LIKE 'idx_%' ORDER BY name",
     );
-    expect(rows.length, 5);
+    expect(rows.length, 9);
+  });
+
+  test('creates the subscriptions table', () async {
+    final List<Map<String, Object?>> rows = await db.rawQuery(
+      "SELECT name FROM sqlite_master WHERE type = 'table' "
+      "AND name = 'subscriptions'",
+    );
+    expect(rows.length, 1);
+  });
+
+  test('adds the v2 transaction columns', () async {
+    final List<Map<String, Object?>> rows =
+        await db.rawQuery('PRAGMA table_info(transactions)');
+    final List<String> names = rows
+        .map((Map<String, Object?> row) => row['name']! as String)
+        .toList();
+    expect(names, containsAll(<String>[
+      'fee_minor',
+      'subscription_id',
+      'billing_period',
+    ]));
+  });
+
+  test('rejects a fee on an expense', () async {
+    await db.insert('wallets', <String, Object?>{
+      'id': 'w1',
+      'name': 'Cash',
+      'account_type': 'CASH',
+      'icon_identifier': 'payments',
+      'created_at_ms': 0,
+      'updated_at_ms': 0,
+    });
+
+    await expectLater(
+      db.insert('transactions', <String, Object?>{
+        'id': 'fee-expense',
+        'amount_minor': 100,
+        'fee_minor': 5,
+        'transaction_type': 'EXPENSE',
+        'source_wallet_id': 'w1',
+        'category_id': kOpeningBalanceCategoryId,
+        'occurred_at_ms': 0,
+        'local_date': '2026-11-01',
+        'created_at_ms': 0,
+        'updated_at_ms': 0,
+      }),
+      throwsA(isA<DatabaseException>()),
+    );
   });
 
   test('enables foreign keys on this connection', () async {

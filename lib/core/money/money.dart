@@ -37,6 +37,17 @@ class Money implements Comparable<Money> {
     return Money(value);
   }
 
+  /// Like [parsePesos], but blank and zero are valid and return [zero].
+  /// Used for optional values such as a transfer fee.
+  static Money parsePesosOrZero(String input) {
+    final String normalized = input.trim().replaceAll(',', '');
+    if (normalized.isEmpty ||
+        RegExp(r'^0+(\.0{1,2})?$').hasMatch(normalized)) {
+      return zero;
+    }
+    return parsePesos(input);
+  }
+
   Money operator +(Money other) => Money(minorUnits + other.minorUnits);
 
   Money operator -(Money other) => Money(minorUnits - other.minorUnits);

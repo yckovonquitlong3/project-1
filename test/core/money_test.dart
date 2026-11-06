@@ -45,6 +45,29 @@ void main() {
     });
   });
 
+  group('Money.parsePesosOrZero', () {
+    test('treats blank as zero', () {
+      expect(Money.parsePesosOrZero('').minorUnits, 0);
+      expect(Money.parsePesosOrZero('   ').minorUnits, 0);
+    });
+
+    test('treats zero as zero', () {
+      expect(Money.parsePesosOrZero('0').minorUnits, 0);
+      expect(Money.parsePesosOrZero('0.00').minorUnits, 0);
+    });
+
+    test('parses a normal fee', () {
+      expect(Money.parsePesosOrZero('15').minorUnits, 1500);
+      expect(Money.parsePesosOrZero('15.50').minorUnits, 1550);
+      expect(Money.parsePesosOrZero('1,234.56').minorUnits, 123456);
+    });
+
+    test('rejects negative and over-precise fees', () {
+      expect(() => Money.parsePesosOrZero('-1'), throwsFormatException);
+      expect(() => Money.parsePesosOrZero('1.234'), throwsFormatException);
+    });
+  });
+
   group('Money.format', () {
     test('formats with symbol, grouping and two decimals', () {
       expect(const Money(123450).format(), '${Money.currencySymbol}1,234.50');

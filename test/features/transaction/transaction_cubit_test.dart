@@ -100,6 +100,7 @@ void main() {
         amount: const Money(1000),
         sourceWalletId: 'w1',
         targetWalletId: 'w2',
+        fee: const Money(1500),
       ),
     );
 
@@ -108,6 +109,7 @@ void main() {
     expect(saved.record.sourceWalletId, 'w1');
     expect(saved.record.targetWalletId, 'w2');
     expect(saved.record.categoryId, isNull);
+    expect(saved.record.fee, const Money(1500));
   });
 
   test('edit emits saved with the new amount', () async {

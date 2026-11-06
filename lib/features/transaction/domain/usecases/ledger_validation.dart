@@ -16,6 +16,12 @@ void requirePositiveAmount(Money amount) {
   }
 }
 
+void requireValidFee(Money fee) {
+  if (fee.isNegative) {
+    throw const ValidationFailure('Fee cannot be negative');
+  }
+}
+
 Future<Wallet> requireActiveWallet(
   WalletRepository wallets,
   String walletId,

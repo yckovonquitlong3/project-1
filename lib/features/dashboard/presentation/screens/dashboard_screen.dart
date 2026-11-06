@@ -340,6 +340,14 @@ class _MonthCard extends StatelessWidget {
                 ),
               ],
             ),
+            if (summary.fees.isPositive) ...<Widget>[
+              const SizedBox(height: 6),
+              Text(
+                'Includes ${summary.fees.format()} in transfer fees',
+                style: theme.textTheme.labelSmall
+                    ?.copyWith(color: scheme.onSurfaceVariant),
+              ),
+            ],
           ],
         ),
       ),
@@ -643,6 +651,8 @@ class _RecentTile extends StatelessWidget {
     final String walletText = item.type.isTransfer
         ? '${item.sourceWalletName} to ${item.targetWalletName ?? ''}'
         : item.sourceWalletName;
+    final String feeText =
+        item.fee.isPositive ? ' · fee ${item.fee.format()}' : '';
 
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
@@ -659,7 +669,7 @@ class _RecentTile extends StatelessWidget {
         style: theme.textTheme.bodyLarge,
       ),
       subtitle: Text(
-        '$walletText · $date',
+        '$walletText$feeText · $date',
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
       ),

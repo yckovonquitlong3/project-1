@@ -135,6 +135,9 @@ class _ActivityTile extends StatelessWidget {
     final String date = DateFormat.yMMMd().add_jm().format(record.occurredAt);
     final String? note = record.note;
     final bool hasNote = note != null && note.isNotEmpty;
+    final String details = record.fee.isPositive
+        ? 'Fee ${record.fee.format()} · $date'
+        : date;
 
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
@@ -149,7 +152,7 @@ class _ActivityTile extends StatelessWidget {
         overflow: TextOverflow.ellipsis,
       ),
       subtitle: Text(
-        hasNote ? '$typeLabel · $date' : date,
+        hasNote ? '$typeLabel · $details' : details,
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
       ),

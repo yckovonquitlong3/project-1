@@ -34,6 +34,7 @@ final class EditTransaction {
   Future<TransactionRecord> call({
     required TransactionRecord previous,
     required Money amount,
+    Money? fee,
     String? sourceWalletId,
     String? targetWalletId,
     String? categoryId,
@@ -41,6 +42,12 @@ final class EditTransaction {
     String? note,
   }) async {
     requirePositiveAmount(amount);
+    final Money effectiveFee = previous.type == TransactionType.transfer
+        ? (fee ?? previous.fee)
+        : Money.zero;
+    if (previous.type == TransactionType.transfer) {
+      requireValidFee(effectiveFee);
+    }
 
     final String source = sourceWalletId ?? previous.sourceWalletId;
     String? target;
@@ -105,6 +112,7 @@ final class EditTransaction {
       TransactionRecord(
         id: previous.id,
         amount: amount,
+        fee: effectiveFee,
         type: previous.type,
         sourceWalletId: source,
         targetWalletId: target,

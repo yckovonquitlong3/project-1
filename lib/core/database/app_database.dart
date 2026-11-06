@@ -32,7 +32,7 @@ class AppDatabase {
           await db.execute('PRAGMA foreign_keys = ON');
         },
         onCreate: (Database db, int version) async {
-          await createSchemaV1(db);
+          await migrate(db, 0, version);
           await seedCategories(db);
         },
         onUpgrade: migrate,

@@ -174,6 +174,37 @@ void main() {
     expect(await getNetWorth(), before);
   });
 
+  test('Scenario: Internal transfer with a fee', () async {
+    final Wallet bank = await seedWallet(
+      'Bank',
+      openingMinor: 500000,
+      type: AccountType.bank,
+    );
+    final Wallet gcash = await seedWallet(
+      'GCash',
+      openingMinor: 100000,
+      type: AccountType.eWallet,
+    );
+    final Money before = await getNetWorth();
+
+    await transferMoney(
+      amount: const Money(100000),
+      sourceWalletId: bank.id,
+      targetWalletId: gcash.id,
+      fee: const Money(1500),
+    );
+
+    expect(await balanceOf(bank.id), const Money(398500));
+    expect(await balanceOf(gcash.id), const Money(200000));
+    expect(await getNetWorth(), before - const Money(1500));
+
+    final MonthSummary summary =
+        await getMonthSummary(month: DateTime.now());
+    expect(summary.fees, const Money(1500));
+    expect(summary.expense, const Money(1500));
+    expect(await verifyBalances(), isEmpty);
+  });
+
   test('Scenario: Transfer to the same wallet', () async {
     final Wallet wallet = await seedWallet('Cash', openingMinor: 10000);
     final int before = await transactionCount();

@@ -80,13 +80,14 @@ class TransactionDao {
     int sign,
   ) async {
     final int amount = record.amount.minorUnits * sign;
+    final int fee = record.fee.minorUnits * sign;
     switch (record.type) {
       case TransactionType.expense:
         await _addToBalance(db, record.sourceWalletId, -amount);
       case TransactionType.income:
         await _addToBalance(db, record.sourceWalletId, amount);
       case TransactionType.transfer:
-        await _addToBalance(db, record.sourceWalletId, -amount);
+        await _addToBalance(db, record.sourceWalletId, -amount - fee);
         await _addToBalance(db, record.targetWalletId!, amount);
     }
   }
@@ -119,7 +120,7 @@ HAVING w.balance_minor <> COALESCE(SUM(
   CASE
     WHEN t.transaction_type = 'INCOME'   AND t.source_wallet_id = w.id THEN  t.amount_minor
     WHEN t.transaction_type = 'EXPENSE'  AND t.source_wallet_id = w.id THEN -t.amount_minor
-    WHEN t.transaction_type = 'TRANSFER' AND t.source_wallet_id = w.id THEN -t.amount_minor
+    WHEN t.transaction_type = 'TRANSFER' AND t.source_wallet_id = w.id THEN -(t.amount_minor + t.fee_minor)
     WHEN t.transaction_type = 'TRANSFER' AND t.target_wallet_id = w.id THEN  t.amount_minor
     ELSE 0
   END

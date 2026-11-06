@@ -71,6 +71,7 @@ class TransactionCubit extends Cubit<TransactionState> {
     required Money amount,
     required String sourceWalletId,
     required String targetWalletId,
+    Money fee = Money.zero,
     DateTime? occurredAt,
     String? note,
   }) {
@@ -79,6 +80,7 @@ class TransactionCubit extends Cubit<TransactionState> {
         amount: amount,
         sourceWalletId: sourceWalletId,
         targetWalletId: targetWalletId,
+        fee: fee,
         occurredAt: occurredAt,
         note: note,
       ),
@@ -88,6 +90,7 @@ class TransactionCubit extends Cubit<TransactionState> {
   Future<void> edit({
     required TransactionRecord previous,
     required Money amount,
+    Money? fee,
     String? sourceWalletId,
     String? targetWalletId,
     String? categoryId,
@@ -98,6 +101,7 @@ class TransactionCubit extends Cubit<TransactionState> {
       () => _editEntry(
         previous: previous,
         amount: amount,
+        fee: fee,
         sourceWalletId: sourceWalletId,
         targetWalletId: targetWalletId,
         categoryId: categoryId,

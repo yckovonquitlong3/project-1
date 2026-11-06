@@ -8,6 +8,7 @@ abstract final class TransactionModel {
     return TransactionRecord(
       id: row['id']! as String,
       amount: Money(row['amount_minor']! as int),
+      fee: Money((row['fee_minor'] as int?) ?? 0),
       type: TransactionType.fromDb(row['transaction_type']! as String),
       sourceWalletId: row['source_wallet_id']! as String,
       targetWalletId: row['target_wallet_id'] as String?,
@@ -15,6 +16,8 @@ abstract final class TransactionModel {
       occurredAt: fromEpochMillis(row['occurred_at_ms']! as int),
       localDate: row['local_date']! as String,
       note: row['note'] as String?,
+      subscriptionId: row['subscription_id'] as String?,
+      billingPeriod: row['billing_period'] as String?,
       createdAt: fromEpochMillis(row['created_at_ms']! as int),
       updatedAt: fromEpochMillis(row['updated_at_ms']! as int),
     );
@@ -24,6 +27,7 @@ abstract final class TransactionModel {
     return <String, Object?>{
       'id': record.id,
       'amount_minor': record.amount.minorUnits,
+      'fee_minor': record.fee.minorUnits,
       'transaction_type': record.type.dbValue,
       'source_wallet_id': record.sourceWalletId,
       'target_wallet_id': record.targetWalletId,
@@ -31,6 +35,8 @@ abstract final class TransactionModel {
       'occurred_at_ms': epochMillis(record.occurredAt),
       'local_date': record.localDate,
       'note': record.note,
+      'subscription_id': record.subscriptionId,
+      'billing_period': record.billingPeriod,
       'created_at_ms': epochMillis(record.createdAt),
       'updated_at_ms': epochMillis(record.updatedAt),
     };

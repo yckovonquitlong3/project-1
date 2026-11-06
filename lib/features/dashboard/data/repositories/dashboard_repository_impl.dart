@@ -34,14 +34,16 @@ class DashboardRepositoryImpl implements DashboardRepository {
   Future<MonthSummary> monthSummary(DateTime month) async {
     final Database db = await _db.database;
     try {
-      final ({int income, int expense}) totals = await _dao.monthTotals(
+      final ({int income, int expense, int fees}) totals =
+          await _dao.monthTotals(
         db,
         monthStartOf(month),
         nextMonthStartOf(month),
       );
       return MonthSummary(
         income: Money(totals.income),
-        expense: Money(totals.expense),
+        expense: Money(totals.expense + totals.fees),
+        fees: Money(totals.fees),
       );
     } on DatabaseException catch (error) {
       throw DatabaseFailure('Could not load the monthly summary', cause: error);
@@ -52,12 +54,14 @@ class DashboardRepositoryImpl implements DashboardRepository {
   Future<List<CategoryBreakdown>> categoryBreakdown(DateTime month) async {
     final Database db = await _db.database;
     try {
-      final List<Map<String, Object?>> rows = await _dao.categoryBreakdown(
-        db,
-        monthStartOf(month),
-        nextMonthStartOf(month),
-      );
-      return rows
+      final String start = monthStartOf(month);
+      final String end = nextMonthStartOf(month);
+      final ({int income, int expense, int fees}) totals =
+          await _dao.monthTotals(db, start, end);
+      final List<Map<String, Object?>> rows =
+          await _dao.categoryBreakdown(db, start, end);
+
+      final List<CategoryBreakdown> entries = rows
           .map(
             (Map<String, Object?> row) => CategoryBreakdown(
               categoryId: row['category_id']! as String,
@@ -66,7 +70,24 @@ class DashboardRepositoryImpl implements DashboardRepository {
               total: Money(row['total']! as int),
             ),
           )
-          .toList(growable: false);
+          .toList(growable: true);
+
+      if (totals.fees > 0) {
+        entries.add(
+          CategoryBreakdown(
+            categoryId: '__transfer_fees__',
+            name: 'Transfer fees',
+            colorHex: '#607D8B',
+            total: Money(totals.fees),
+          ),
+        );
+      }
+
+      entries.sort(
+        (CategoryBreakdown a, CategoryBreakdown b) =>
+            b.total.compareTo(a.total),
+      );
+      return entries;
     } on DatabaseException catch (error) {
       throw DatabaseFailure('Could not load the breakdown', cause: error);
     }
@@ -86,6 +107,7 @@ class DashboardRepositoryImpl implements DashboardRepository {
                 row['transaction_type']! as String,
               ),
               amount: Money(row['amount_minor']! as int),
+              fee: Money((row['fee_minor'] as int?) ?? 0),
               sourceWalletName: row['source_wallet_name']! as String,
               targetWalletName: row['target_wallet_name'] as String?,
               categoryName: row['category_name'] as String?,

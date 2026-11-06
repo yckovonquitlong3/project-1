@@ -25,7 +25,7 @@ void main() {
     stubDashboardLoad(
       dashboard,
       netWorth: const Money(350000),
-      summary: monthSummaryFixture(),
+      summary: monthSummaryFixture(feesMinor: 1500),
       breakdown: <CategoryBreakdown>[breakdownFixture()],
       recent: <DashboardTransaction>[dashboardTransactionFixture()],
     );
@@ -53,10 +53,25 @@ void main() {
     expect(find.text('This month'), findsOneWidget);
     expect(find.text('Income'), findsOneWidget);
     expect(find.text('Expense'), findsOneWidget);
-    expect(find.text('Food & Dining'), findsOneWidget);
     expect(find.text('GCash'), findsOneWidget);
+    expect(
+      find.text('Includes ${const Money(1500).format()} in transfer fees'),
+      findsOneWidget,
+    );
 
-    await tester.drag(find.byType(ListView).first, const Offset(0, -700));
+    await tester.scrollUntilVisible(
+      find.text('Spending by category'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Food & Dining'), findsAtLeastNWidgets(1));
+
+    await tester.scrollUntilVisible(
+      find.text('Recent activity'),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
     await tester.pumpAndSettle();
     expect(find.text('Recent activity'), findsOneWidget);
 

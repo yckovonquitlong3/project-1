@@ -11,11 +11,13 @@ class DashboardTransaction extends Equatable {
     required this.occurredAt,
     this.targetWalletName,
     this.categoryName,
+    this.fee = Money.zero,
   });
 
   final String id;
   final TransactionType type;
   final Money amount;
+  final Money fee;
   final String sourceWalletName;
   final String? targetWalletName;
   final String? categoryName;
@@ -26,6 +28,7 @@ class DashboardTransaction extends Equatable {
         id,
         type,
         amount,
+        fee,
         sourceWalletName,
         targetWalletName,
         categoryName,

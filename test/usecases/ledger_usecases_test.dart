@@ -268,6 +268,25 @@ void main() {
       expect(await transactionCount(), before);
       expect(await balanceOf(wallet.id), const Money(10000));
     });
+
+    test('rejects a negative fee and writes nothing', () async {
+      final Wallet bank = await seedWallet('Cash', openingMinor: 10000);
+      final Wallet maya = await seedWallet('Maya', openingMinor: 10000);
+      final int before = await transactionCount();
+
+      await expectLater(
+        transferMoney(
+          amount: const Money(1000),
+          sourceWalletId: bank.id,
+          targetWalletId: maya.id,
+          fee: const Money(-1),
+        ),
+        throwsA(isA<ValidationFailure>()),
+      );
+
+      expect(await transactionCount(), before);
+      expect(await verifyBalances(), isEmpty);
+    });
   });
 
   group('EditTransaction', () {

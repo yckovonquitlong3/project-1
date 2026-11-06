@@ -12,7 +12,7 @@ class DashboardDao {
   }
 
   /// Totals for the half-open range `[start, end)` on `local_date`.
-  Future<({int income, int expense})> monthTotals(
+  Future<({int income, int expense, int fees})> monthTotals(
     DatabaseExecutor db,
     String start,
     String end,
@@ -21,7 +21,8 @@ class DashboardDao {
       '''
 SELECT
   COALESCE(SUM(CASE WHEN transaction_type = 'INCOME'  THEN amount_minor ELSE 0 END), 0) AS income,
-  COALESCE(SUM(CASE WHEN transaction_type = 'EXPENSE' THEN amount_minor ELSE 0 END), 0) AS expense
+  COALESCE(SUM(CASE WHEN transaction_type = 'EXPENSE' THEN amount_minor ELSE 0 END), 0) AS expense,
+  COALESCE(SUM(CASE WHEN transaction_type = 'TRANSFER' THEN fee_minor ELSE 0 END), 0) AS fees
 FROM transactions
 WHERE local_date >= ? AND local_date < ?
 ''',
@@ -31,6 +32,7 @@ WHERE local_date >= ? AND local_date < ?
     return (
       income: row['income']! as int,
       expense: row['expense']! as int,
+      fees: row['fees']! as int,
     );
   }
 
@@ -61,7 +63,8 @@ ORDER BY total DESC, c.name ASC
     return db.rawQuery(
       '''
 SELECT t.id AS id, t.transaction_type AS transaction_type,
-       t.amount_minor AS amount_minor, t.occurred_at_ms AS occurred_at_ms,
+       t.amount_minor AS amount_minor, t.fee_minor AS fee_minor,
+       t.occurred_at_ms AS occurred_at_ms,
        sw.name AS source_wallet_name,
        tw.name AS target_wallet_name,
        c.name  AS category_name

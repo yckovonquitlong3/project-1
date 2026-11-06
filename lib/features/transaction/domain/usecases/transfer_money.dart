@@ -29,10 +29,12 @@ final class TransferMoney {
     required Money amount,
     required String sourceWalletId,
     required String targetWalletId,
+    Money fee = Money.zero,
     DateTime? occurredAt,
     String? note,
   }) async {
     requirePositiveAmount(amount);
+    requireValidFee(fee);
     if (sourceWalletId == targetWalletId) {
       throw const ValidationFailure('Choose two different wallets');
     }
@@ -46,6 +48,7 @@ final class TransferMoney {
       TransactionRecord(
         id: _uuid.v4(),
         amount: amount,
+        fee: fee,
         type: TransactionType.transfer,
         sourceWalletId: sourceWalletId,
         targetWalletId: targetWalletId,

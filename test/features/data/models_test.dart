@@ -63,6 +63,29 @@ void main() {
       expect(TransactionModel.fromRow(row), original);
     });
 
+    test('round-trips the fee and subscription link', () {
+      final TransactionRecord original = TransactionRecord(
+        id: 't2',
+        amount: const Money(100000),
+        fee: const Money(1500),
+        type: TransactionType.transfer,
+        sourceWalletId: 'w1',
+        targetWalletId: 'w2',
+        occurredAt: DateTime(2026, 11, 1, 7),
+        localDate: '2026-11-01',
+        subscriptionId: 'sub-1',
+        billingPeriod: '2026-11-01',
+        createdAt: DateTime(2026, 11, 1, 8),
+        updatedAt: DateTime(2026, 11, 1, 8),
+      );
+      final Map<String, Object?> row = TransactionModel.toRow(original);
+
+      expect(row['fee_minor'], 1500);
+      expect(row['subscription_id'], 'sub-1');
+      expect(row['billing_period'], '2026-11-01');
+      expect(TransactionModel.fromRow(row), original);
+    });
+
     test('stores the local date, not the UTC date, near midnight', () {
       final DateTime lateNight = DateTime(2026, 11, 1, 23, 59, 59);
       expect(localDateOf(lateNight), '2026-11-01');

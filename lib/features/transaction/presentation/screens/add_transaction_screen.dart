@@ -44,6 +44,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   late final TransactionCubit _cubit;
   late final bool _ownsCubit;
   late final TextEditingController _amountController;
+  late final TextEditingController _feeController;
   late final TextEditingController _noteController;
   late TransactionType _type;
   late DateTime _occurredAt;
@@ -66,6 +67,11 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     _amountController = TextEditingController(
       text: detail == null ? '' : _amountText(detail.record.amount),
     );
+    _feeController = TextEditingController(
+      text: detail == null || detail.record.fee.isZero
+          ? ''
+          : _amountText(detail.record.fee),
+    );
     _noteController = TextEditingController(text: detail?.record.note ?? '');
     _sourceWalletId = detail?.record.sourceWalletId;
     _targetWalletId = detail?.record.targetWalletId;
@@ -78,6 +84,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   @override
   void dispose() {
     _amountController.dispose();
+    _feeController.dispose();
     _noteController.dispose();
     if (_ownsCubit) {
       unawaited(_cubit.close());
@@ -196,6 +203,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       _categoryId = null;
       if (type != TransactionType.transfer) {
         _targetWalletId = null;
+        _feeController.clear();
       }
       _applyDefaults();
     });
@@ -208,6 +216,35 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     } on FormatException catch (error) {
       return error.message;
     }
+  }
+
+  String? _validateFee(String? value) {
+    final String text = (value ?? '').trim();
+    if (text.isEmpty) {
+      return null;
+    }
+    try {
+      Money.parsePesosOrZero(text);
+      return null;
+    } on FormatException catch (error) {
+      return error.message;
+    }
+  }
+
+  String? _feeWarning() {
+    if (_type != TransactionType.transfer) {
+      return null;
+    }
+    try {
+      final Money amount = Money.parsePesos(_amountController.text);
+      final Money fee = Money.parsePesosOrZero(_feeController.text);
+      if (fee.compareTo(amount) > 0) {
+        return 'Fee is larger than the transfer amount.';
+      }
+    } on FormatException {
+      return null;
+    }
+    return null;
   }
 
   String? _validateWallet(String? value) =>
@@ -265,6 +302,9 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     } on FormatException {
       return;
     }
+    final Money fee = _type == TransactionType.transfer
+        ? Money.parsePesosOrZero(_feeController.text)
+        : Money.zero;
 
     final TransactionDetail? detail = widget.existing;
     if (detail == null) {
@@ -290,6 +330,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
             amount: amount,
             sourceWalletId: _sourceWalletId!,
             targetWalletId: _targetWalletId!,
+            fee: fee,
             occurredAt: _occurredAt,
             note: _noteController.text,
           );
@@ -300,6 +341,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     await _cubit.edit(
       previous: detail.record,
       amount: amount,
+      fee: fee,
       sourceWalletId: _sourceWalletId,
       targetWalletId: _targetWalletId,
       categoryId: _categoryId,
@@ -344,6 +386,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     final ThemeData theme = Theme.of(context);
     final ColorScheme scheme = theme.colorScheme;
     final List<Category> categoryOptions = _categoriesFor(_type);
+    final String? feeWarning = _feeWarning();
 
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
@@ -393,6 +436,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                 prefixText: '${Money.currencySymbol} ',
               ),
               validator: _validateAmount,
+              onChanged: (_) => setState(() {}),
             ),
             const SizedBox(height: 16),
             if (_wallets.isEmpty)
@@ -478,6 +522,30 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                   onChanged: (String? value) =>
                       setState(() => _targetWalletId = value),
                 ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _feeController,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  decoration: const InputDecoration(
+                    labelText: 'Transfer fee (optional)',
+                    hintText: '0.00',
+                    prefixText: '${Money.currencySymbol} ',
+                    helperText: 'Leave blank for no fee.',
+                  ),
+                  validator: _validateFee,
+                  onChanged: (_) => setState(() {}),
+                ),
+                if (feeWarning != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 6),
+                    child: Text(
+                      feeWarning,
+                      style: theme.textTheme.bodySmall
+                          ?.copyWith(color: scheme.error),
+                    ),
+                  ),
               ],
             ],
             if (_type != TransactionType.transfer) ...<Widget>[

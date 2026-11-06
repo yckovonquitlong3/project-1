@@ -240,6 +240,11 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
             ),
           if (detail.category != null)
             _DetailRow(label: 'Category', value: detail.category!.name),
+          if (detail.record.fee.isPositive)
+            _DetailRow(
+              label: 'Transfer fee',
+              value: detail.record.fee.format(),
+            ),
           _DetailRow(
             label: 'Date and time',
             value: DateFormat.yMMMMd()

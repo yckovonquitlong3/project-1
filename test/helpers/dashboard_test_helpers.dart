@@ -52,10 +52,12 @@ void stubDashboardLoad(
 MonthSummary monthSummaryFixture({
   int incomeMinor = 100000,
   int expenseMinor = 25000,
+  int feesMinor = 0,
 }) {
   return MonthSummary(
     income: Money(incomeMinor),
     expense: Money(expenseMinor),
+    fees: Money(feesMinor),
   );
 }
 
