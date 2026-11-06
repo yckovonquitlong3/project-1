@@ -71,6 +71,19 @@ class WalletDao {
     return rows.first['c']! as int;
   }
 
+  Future<int> countSubscriptions(
+    DatabaseExecutor db,
+    String walletId, {
+    bool activeOnly = false,
+  }) async {
+    final List<Map<String, Object?>> rows = await db.rawQuery(
+      'SELECT COUNT(*) AS c FROM subscriptions WHERE wallet_id = ?'
+      '${activeOnly ? ' AND is_active = 1' : ''}',
+      <Object?>[walletId],
+    );
+    return rows.first['c']! as int;
+  }
+
   Future<void> delete(DatabaseExecutor db, String id) async {
     await db.delete(table, where: 'id = ?', whereArgs: <Object?>[id]);
   }

@@ -12,6 +12,13 @@ import 'features/dashboard/domain/usecases/get_month_summary.dart';
 import 'features/dashboard/domain/usecases/get_net_worth.dart';
 import 'features/dashboard/domain/usecases/get_recent_transactions.dart';
 import 'features/dashboard/presentation/cubit/dashboard_cubit.dart';
+import 'features/subscription/data/repositories/subscription_repository_impl.dart';
+import 'features/subscription/domain/repositories/subscription_repository.dart';
+import 'features/subscription/domain/usecases/create_subscription.dart';
+import 'features/subscription/domain/usecases/delete_subscription.dart';
+import 'features/subscription/domain/usecases/get_subscriptions.dart';
+import 'features/subscription/domain/usecases/set_subscription_active.dart';
+import 'features/subscription/domain/usecases/update_subscription.dart';
 import 'features/transaction/data/repositories/transaction_repository_impl.dart';
 import 'features/transaction/domain/repositories/transaction_repository.dart';
 import 'features/transaction/domain/usecases/add_expense.dart';
@@ -57,8 +64,37 @@ Future<void> initDependencies() async {
     ..registerLazySingleton<GetCategories>(
       () => GetCategories(categories: sl()),
     )
+    ..registerLazySingleton<CreateSubscription>(
+      () => CreateSubscription(
+        subscriptions: sl(),
+        wallets: sl(),
+        categories: sl(),
+      ),
+    )
+    ..registerLazySingleton<UpdateSubscription>(
+      () => UpdateSubscription(
+        subscriptions: sl(),
+        wallets: sl(),
+        categories: sl(),
+      ),
+    )
+    ..registerLazySingleton<GetSubscriptions>(
+      () => GetSubscriptions(subscriptions: sl()),
+    )
+    ..registerLazySingleton<GetSubscription>(
+      () => GetSubscription(subscriptions: sl()),
+    )
+    ..registerLazySingleton<SetSubscriptionActive>(
+      () => SetSubscriptionActive(subscriptions: sl()),
+    )
+    ..registerLazySingleton<DeleteSubscription>(
+      () => DeleteSubscription(subscriptions: sl()),
+    )
     ..registerLazySingleton<DashboardRepository>(
       () => DashboardRepositoryImpl(database: sl()),
+    )
+    ..registerLazySingleton<SubscriptionRepository>(
+      () => SubscriptionRepositoryImpl(database: sl()),
     )
     ..registerLazySingleton<CreateWallet>(() => CreateWallet(wallets: sl()))
     ..registerLazySingleton<UpdateWallet>(() => UpdateWallet(wallets: sl()))

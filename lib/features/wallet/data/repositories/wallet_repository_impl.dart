@@ -157,6 +157,12 @@ class WalletRepositoryImpl implements WalletRepository {
   Future<void> _setArchived(String id, {required bool archived}) async {
     final Database db = await _db.database;
     try {
+      if (archived &&
+          await _wallets.countSubscriptions(db, id, activeOnly: true) > 0) {
+        throw const ConflictFailure(
+          'Archive or move its active subscriptions first',
+        );
+      }
       await _wallets.setArchived(
         db,
         id,
@@ -188,6 +194,11 @@ class WalletRepositoryImpl implements WalletRepository {
     }
     final Database db = await _db.database;
     try {
+      if (await _wallets.countSubscriptions(db, id) > 0) {
+        throw const ConflictFailure(
+          'Remove or archive its subscriptions first',
+        );
+      }
       await _wallets.delete(db, id);
     } on DatabaseException catch (error) {
       throw DatabaseFailure('Could not delete the wallet', cause: error);
