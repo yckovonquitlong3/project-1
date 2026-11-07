@@ -77,16 +77,22 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
               : _amountText(draft!.amount!),
     );
     _feeController = TextEditingController(
-      text: detail == null || detail.record.fee.isZero
-          ? ''
-          : _amountText(detail.record.fee),
+      text: detail != null
+          ? (detail.record.fee.isZero
+              ? ''
+              : _amountText(detail.record.fee))
+          : draft?.type == TransactionType.transfer &&
+                  draft!.fee.isPositive
+              ? _amountText(draft.fee)
+              : '',
     );
     _noteController = TextEditingController(
       text: detail?.record.note ?? draft?.note ?? '',
     );
     _sourceWalletId =
         detail?.record.sourceWalletId ?? draft?.sourceWalletId;
-    _targetWalletId = detail?.record.targetWalletId;
+    _targetWalletId =
+        detail?.record.targetWalletId ?? draft?.targetWalletId;
     _categoryId = detail?.record.categoryId ?? draft?.categoryId;
     _ownsCubit = widget.cubit == null;
     _cubit = widget.cubit ?? sl<TransactionCubit>();

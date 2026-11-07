@@ -70,8 +70,37 @@ void main() {
     expect(suggestion.note, 'iced coffee');
   });
 
-  test('accepts JSON inside code fences', () async {
+  test('parses a transfer with a target wallet and fee', () async {
     final HttpAiClient client = HttpAiClient(
+      client: MockClient(
+        (http.Request request) async => chatResponse(
+          jsonEncode(<String, Object?>{
+            'amount_text': '500.00',
+            'transaction_type': 'TRANSFER',
+            'wallet_name': 'Maribank',
+            'target_wallet_name': 'Pocket Money',
+            'category_name': null,
+            'fee_text': '15.00',
+            'note': 'withdrawal',
+          }),
+        ),
+      ),
+    );
+
+    final QuickEntrySuggestion suggestion = await client.parseQuickEntry(
+      text: 'I withdrew 500 from Maribank to Pocket Money with a 15 fee',
+      settings: settings,
+      apiKey: 'k',
+    );
+
+    expect(suggestion.type, TransactionType.transfer);
+    expect(suggestion.walletName, 'Maribank');
+    expect(suggestion.targetWalletName, 'Pocket Money');
+    expect(suggestion.feeText, '15.00');
+    expect(suggestion.categoryName, isNull);
+  });
+
+  test('accepts JSON inside code fences', () async {    final HttpAiClient client = HttpAiClient(
       client: MockClient(
         (http.Request request) async =>
             chatResponse('```json\n${suggestionJson()}\n```'),
@@ -105,13 +134,13 @@ void main() {
     );
   });
 
-  test('rejects extra keys and unsupported transaction types', () async {
+  test('rejects unsupported transaction types', () async {
     final HttpAiClient client = HttpAiClient(
       client: MockClient((http.Request request) async {
         return chatResponse(
           jsonEncode(<String, Object?>{
             'amount_text': '10.00',
-            'transaction_type': 'TRANSFER',
+            'transaction_type': 'REFUND',
             'wallet_name': 'GCash',
             'category_name': null,
             'note': null,

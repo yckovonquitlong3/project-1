@@ -8,14 +8,18 @@ class TransactionDraft extends Equatable {
     this.type = TransactionType.expense,
     this.amount,
     this.sourceWalletId,
+    this.targetWalletId,
     this.categoryId,
+    this.fee = Money.zero,
     this.note,
   });
 
   final TransactionType type;
   final Money? amount;
   final String? sourceWalletId;
+  final String? targetWalletId;
   final String? categoryId;
+  final Money fee;
   final String? note;
 
   @override
@@ -23,7 +27,9 @@ class TransactionDraft extends Equatable {
         type,
         amount,
         sourceWalletId,
+        targetWalletId,
         categoryId,
+        fee,
         note,
       ];
 }

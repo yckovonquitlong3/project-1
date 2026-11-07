@@ -76,24 +76,54 @@ final class ParseQuickEntry {
     }
 
     final List<Wallet> wallets = await _walletRepo.all();
-    final List<Category> categories = await _categoryRepo.byType(
-      suggestion.type == TransactionType.income
-          ? CategoryType.income
-          : CategoryType.expense,
-    );
-
     final String? walletId = matchLocalName(
       suggestion.walletName,
       wallets.map(
         (Wallet wallet) => (id: wallet.id, name: wallet.name),
       ),
     );
-    final String? categoryId = matchLocalName(
-      suggestion.categoryName,
-      categories.map(
-        (Category category) => (id: category.id, name: category.name),
-      ),
-    );
+
+    String? targetWalletId;
+    String? categoryId;
+    Money fee = Money.zero;
+
+    switch (suggestion.type) {
+      case TransactionType.expense:
+      case TransactionType.income:
+        final List<Category> categories = await _categoryRepo.byType(
+          suggestion.type == TransactionType.income
+              ? CategoryType.income
+              : CategoryType.expense,
+        );
+        categoryId = matchLocalName(
+          suggestion.categoryName,
+          categories.map(
+            (Category category) => (id: category.id, name: category.name),
+          ),
+        );
+      case TransactionType.transfer:
+        targetWalletId = matchLocalName(
+          suggestion.targetWalletName,
+          wallets.map(
+            (Wallet wallet) => (id: wallet.id, name: wallet.name),
+          ),
+        );
+        if (targetWalletId == walletId) {
+          targetWalletId = null;
+        }
+        final String feeText = suggestion.feeText?.trim() ?? '';
+        if (feeText.isNotEmpty) {
+          try {
+            fee = Money.parsePesosOrZero(feeText);
+          } on FormatException {
+            throw const AiFailure(
+              'The AI returned an invalid transfer fee.',
+              kind: AiFailureKind.invalidResponse,
+            );
+          }
+        }
+    }
+
     final String? note = suggestion.note == null ||
             suggestion.note!.trim().isEmpty
         ? null
@@ -105,7 +135,9 @@ final class ParseQuickEntry {
       type: suggestion.type,
       amount: amount,
       sourceWalletId: walletId,
+      targetWalletId: targetWalletId,
       categoryId: categoryId,
+      fee: fee,
       note: note,
     );
   }

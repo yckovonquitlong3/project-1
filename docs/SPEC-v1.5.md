@@ -402,25 +402,30 @@ The provider must return strict JSON:
 
 ```json
 {
-  "amount_text": "150.00",
-  "transaction_type": "EXPENSE",
-  "wallet_name": "GCash",
-  "category_name": "Food & Dining",
-  "note": "iced coffee"
+  "amount_text": "500.00",
+  "transaction_type": "TRANSFER",
+  "wallet_name": "Maribank",
+  "target_wallet_name": "Pocket Money",
+  "category_name": null,
+  "fee_text": "15.00",
+  "note": "withdrawal"
 }
 ```
 
 - `amount_text` is a string parsed by `Money.parsePesos`; no floating-point amounts.
-- `transaction_type` is `EXPENSE` or `INCOME` in v1.5. Transfers remain manual.
+- `transaction_type` is `EXPENSE`, `INCOME`, or `TRANSFER`.
+- `target_wallet_name` is required in meaning for a transfer; it is ignored for expense/income.
+- `fee_text` is optional for a transfer (zero when blank) and ignored for expense/income.
+- `category_name` is required in meaning for expense/income and must be null for a transfer.
 - Names are hints, not IDs. Map them locally:
   - Exact case-insensitive match first.
-  - Then normalization (trim, collapse spaces, remove punctuation).
-  - Then fuzzy matching only if there is a unique match above the threshold.
+  - Then normalization (trim, remove punctuation/spaces).
+  - Then fuzzy matching only if there is a unique closest match above the threshold.
   - Exclude archived wallets/categories.
   - Category must match the transaction type.
   - If ambiguous or missing, leave the field blank and let the user choose.
 - Validate the JSON as untrusted input: reject unknown fields, zero/negative amounts, unsupported
-  types, and overlong notes (200 characters).
+  types, negative fees, and overlong notes (200 characters).
 - Never auto-save. The form opens pre-filled; the user confirms.
 - The AI call has a 15-second timeout and at most one retry on transient network/5xx errors. Do not
   retry 401/400 responses.
@@ -720,6 +725,7 @@ scheduler.
 | 12 | FR numbering error (9.4/9.5 under FR-10) | Renumbered FR-7…FR-12 | Keep the spec testable |
 | 13 | "Supersedes v1.0" | Extends v1.0; separate v1.5 doc | Preserve the shipped baseline |
 | 14 | Five-tab assumption | Four tabs + app-bar Chat/Settings | Keeps navigation readable at 2.0x text scale |
+| 15 | Quick entry handled expenses/income only | Quick entry also supports transfers with target wallet and fee | Real-world use case; the form still requires confirmation |
 
 ---
 

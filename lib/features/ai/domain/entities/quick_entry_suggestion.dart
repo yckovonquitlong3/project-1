@@ -8,14 +8,18 @@ class QuickEntrySuggestion extends Equatable {
     required this.amountText,
     required this.type,
     this.walletName,
+    this.targetWalletName,
     this.categoryName,
+    this.feeText,
     this.note,
   });
 
   final String amountText;
   final TransactionType type;
   final String? walletName;
+  final String? targetWalletName;
   final String? categoryName;
+  final String? feeText;
   final String? note;
 
   @override
@@ -23,7 +27,9 @@ class QuickEntrySuggestion extends Equatable {
         amountText,
         type,
         walletName,
+        targetWalletName,
         categoryName,
+        feeText,
         note,
       ];
 }

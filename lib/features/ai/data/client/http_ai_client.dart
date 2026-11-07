@@ -19,11 +19,14 @@ class HttpAiClient implements AiClient {
   static const String _systemPrompt = '''
 You convert one personal-finance sentence into strict JSON.
 Return ONLY a JSON object with exactly these keys:
-{"amount_text":"150.00","transaction_type":"EXPENSE","wallet_name":"GCash","category_name":"Food & Dining","note":"iced coffee"}
+{"amount_text":"500.00","transaction_type":"TRANSFER","wallet_name":"Maribank","target_wallet_name":"Pocket Money","category_name":null,"fee_text":"15.00","note":"withdrawal"}
 Rules:
 - amount_text is a string greater than zero with at most 2 decimals.
-- transaction_type is EXPENSE or INCOME.
-- wallet_name and category_name are short names from the sentence, or null.
+- transaction_type is EXPENSE, INCOME, or TRANSFER.
+- wallet_name is the source wallet for every type.
+- target_wallet_name is only for TRANSFER, otherwise null.
+- category_name is only for EXPENSE or INCOME, otherwise null.
+- fee_text is a string zero or greater with at most 2 decimals for TRANSFER, otherwise null.
 - note is a short string or null.
 - No markdown, no explanations, no extra keys.
 ''';
@@ -186,7 +189,9 @@ Rules:
         'amount_text',
         'transaction_type',
         'wallet_name',
+        'target_wallet_name',
         'category_name',
+        'fee_text',
         'note',
       };
       if (parsed.keys.any((String key) => !allowed.contains(key))) {
@@ -204,30 +209,51 @@ Rules:
         type = TransactionType.expense;
       } else if (normalizedType == 'INCOME') {
         type = TransactionType.income;
+      } else if (normalizedType == 'TRANSFER') {
+        type = TransactionType.transfer;
       } else {
         throw const FormatException('Unsupported transaction type');
       }
 
       final Object? walletName = parsed['wallet_name'];
+      final Object? targetWalletName = parsed['target_wallet_name'];
       final Object? categoryName = parsed['category_name'];
+      final Object? feeText = parsed['fee_text'];
       final Object? note = parsed['note'];
       if (walletName != null && walletName is! String) {
         throw const FormatException('Bad wallet name');
       }
+      if (targetWalletName != null && targetWalletName is! String) {
+        throw const FormatException('Bad target wallet name');
+      }
       if (categoryName != null && categoryName is! String) {
         throw const FormatException('Bad category name');
+      }
+      if (feeText != null && feeText is! String) {
+        throw const FormatException('Bad fee');
       }
       if (note != null && note is! String) {
         throw const FormatException('Bad note');
       }
 
+      final bool isTransfer = type == TransactionType.transfer;
       final String? trimmedWallet =
           walletName is String && walletName.trim().isNotEmpty
               ? walletName.trim()
               : null;
+      final String? trimmedTarget =
+          isTransfer && targetWalletName is String &&
+                  targetWalletName.trim().isNotEmpty
+              ? targetWalletName.trim()
+              : null;
       final String? trimmedCategory =
-          categoryName is String && categoryName.trim().isNotEmpty
+          !isTransfer && categoryName is String &&
+                  categoryName.trim().isNotEmpty
               ? categoryName.trim()
+              : null;
+      final String? trimmedFee =
+          isTransfer && feeText is String && feeText.trim().isNotEmpty
+              ? feeText.trim()
               : null;
       final String? trimmedNote = note is String && note.trim().isNotEmpty
           ? (note.trim().length <= 200
@@ -239,7 +265,9 @@ Rules:
         amountText: amountText.trim(),
         type: type,
         walletName: trimmedWallet,
+        targetWalletName: trimmedTarget,
         categoryName: trimmedCategory,
+        feeText: trimmedFee,
         note: trimmedNote,
       );
     } on AiFailure {
