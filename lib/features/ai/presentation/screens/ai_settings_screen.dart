@@ -2,16 +2,23 @@ import 'package:flutter/material.dart';
 import 'package:multi_wallet_tracker/core/error/failure.dart';
 import 'package:multi_wallet_tracker/features/ai/domain/entities/ai_mode.dart';
 import 'package:multi_wallet_tracker/features/ai/domain/entities/ai_provider.dart';
+import 'package:multi_wallet_tracker/features/ai/domain/ai_settings_bus.dart';
 import 'package:multi_wallet_tracker/features/ai/domain/entities/ai_settings.dart';
 import 'package:multi_wallet_tracker/features/ai/domain/repositories/ai_settings_store.dart';
 import 'package:multi_wallet_tracker/features/ai/domain/services/ai_client.dart';
 import 'package:multi_wallet_tracker/injection_container.dart';
 
 class AiSettingsScreen extends StatefulWidget {
-  const AiSettingsScreen({super.key, this.store, this.client});
+  const AiSettingsScreen({
+    super.key,
+    this.store,
+    this.client,
+    this.bus,
+  });
 
   final AiSettingsStore? store;
   final AiClient? client;
+  final AiSettingsBus? bus;
 
   @override
   State<AiSettingsScreen> createState() => _AiSettingsScreenState();
@@ -20,6 +27,7 @@ class AiSettingsScreen extends StatefulWidget {
 class _AiSettingsScreenState extends State<AiSettingsScreen> {
   late final AiSettingsStore _store;
   late final AiClient _client;
+  late final AiSettingsBus? _bus;
   final TextEditingController _modelController = TextEditingController();
   final TextEditingController _keyController = TextEditingController();
 
@@ -38,6 +46,8 @@ class _AiSettingsScreenState extends State<AiSettingsScreen> {
     super.initState();
     _store = widget.store ?? sl<AiSettingsStore>();
     _client = widget.client ?? sl<AiClient>();
+    _bus = widget.bus ??
+        (sl.isRegistered<AiSettingsBus>() ? sl<AiSettingsBus>() : null);
     _load();
   }
 
@@ -120,6 +130,7 @@ class _AiSettingsScreenState extends State<AiSettingsScreen> {
         return false;
       }
       setState(() => _hasConsent = true);
+      _bus?.notify();
       return true;
     } on Failure catch (failure) {
       if (mounted) {
@@ -204,6 +215,7 @@ class _AiSettingsScreenState extends State<AiSettingsScreen> {
         _hasKey = hasKey;
         _keyController.clear();
       });
+      _bus?.notify();
       _message(_mode == AiMode.off
           ? 'AI is off.'
           : 'AI quick entry is ready.');
@@ -306,6 +318,7 @@ class _AiSettingsScreenState extends State<AiSettingsScreen> {
         _keyController.clear();
         _error = null;
       });
+      _bus?.notify();
       _message('AI disconnected.');
     } on Failure catch (failure) {
       if (mounted) {

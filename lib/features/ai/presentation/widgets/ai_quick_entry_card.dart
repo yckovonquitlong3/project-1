@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:multi_wallet_tracker/features/ai/domain/ai_failure.dart';
+import 'package:multi_wallet_tracker/features/ai/domain/ai_settings_bus.dart';
 import 'package:multi_wallet_tracker/features/ai/domain/entities/ai_settings.dart';
 import 'package:multi_wallet_tracker/features/ai/domain/repositories/ai_settings_store.dart';
 import 'package:multi_wallet_tracker/features/ai/domain/usecases/parse_quick_entry.dart';
@@ -9,10 +12,16 @@ import 'package:multi_wallet_tracker/features/transaction/presentation/screens/a
 import 'package:multi_wallet_tracker/injection_container.dart';
 
 class AiQuickEntryCard extends StatefulWidget {
-  const AiQuickEntryCard({super.key, this.store, this.parseQuickEntry});
+  const AiQuickEntryCard({
+    super.key,
+    this.store,
+    this.parseQuickEntry,
+    this.bus,
+  });
 
   final AiSettingsStore? store;
   final ParseQuickEntry? parseQuickEntry;
+  final AiSettingsBus? bus;
 
   @override
   State<AiQuickEntryCard> createState() => _AiQuickEntryCardState();
@@ -21,7 +30,9 @@ class AiQuickEntryCard extends StatefulWidget {
 class _AiQuickEntryCardState extends State<AiQuickEntryCard> {
   late final AiSettingsStore _store;
   late final ParseQuickEntry _parse;
+  late final AiSettingsBus? _bus;
   final TextEditingController _controller = TextEditingController();
+  StreamSubscription<void>? _busSubscription;
 
   bool _loading = true;
   bool _ready = false;
@@ -32,11 +43,15 @@ class _AiQuickEntryCardState extends State<AiQuickEntryCard> {
     super.initState();
     _store = widget.store ?? sl<AiSettingsStore>();
     _parse = widget.parseQuickEntry ?? sl<ParseQuickEntry>();
+    _bus = widget.bus ??
+        (sl.isRegistered<AiSettingsBus>() ? sl<AiSettingsBus>() : null);
+    _busSubscription = _bus?.changes.listen((_) => _refresh());
     _refresh();
   }
 
   @override
   void dispose() {
+    unawaited(_busSubscription?.cancel());
     _controller.dispose();
     super.dispose();
   }
@@ -66,7 +81,7 @@ class _AiQuickEntryCardState extends State<AiQuickEntryCard> {
   Future<void> _openSettings() async {
     await Navigator.of(context).push<void>(
       MaterialPageRoute<void>(
-        builder: (BuildContext context) => const AiSettingsScreen(),
+        builder: (BuildContext context) => AiSettingsScreen(bus: _bus),
       ),
     );
     if (mounted) {

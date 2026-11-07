@@ -10,6 +10,7 @@ import 'package:multi_wallet_tracker/features/dashboard/domain/entities/dashboar
 import 'package:multi_wallet_tracker/features/dashboard/domain/entities/month_summary.dart';
 import 'package:multi_wallet_tracker/features/dashboard/presentation/cubit/dashboard_cubit.dart';
 import 'package:multi_wallet_tracker/features/dashboard/presentation/cubit/dashboard_state.dart';
+import 'package:multi_wallet_tracker/features/settings/presentation/screens/settings_screen.dart';
 import 'package:multi_wallet_tracker/features/transaction/presentation/screens/add_transaction_screen.dart';
 import 'package:multi_wallet_tracker/features/transaction/presentation/screens/transaction_detail_screen.dart';
 import 'package:multi_wallet_tracker/features/transaction/presentation/widgets/transaction_type_ui.dart';
@@ -69,6 +70,15 @@ class DashboardScreen extends StatelessWidget {
                 ),
               ),
               icon: const Icon(Icons.insights_outlined),
+            ),
+            IconButton(
+              tooltip: 'Settings',
+              onPressed: () => Navigator.of(context).push<void>(
+                MaterialPageRoute<void>(
+                  builder: (BuildContext context) => const SettingsScreen(),
+                ),
+              ),
+              icon: const Icon(Icons.settings_outlined),
             ),
           ],
         ),

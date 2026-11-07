@@ -5,6 +5,7 @@ import 'core/ledger/ledger_bus.dart';
 import 'core/notifications/local_notification_service.dart';
 import 'features/ai/data/client/http_ai_client.dart';
 import 'features/ai/data/settings/secure_ai_settings_store.dart';
+import 'features/ai/domain/ai_settings_bus.dart';
 import 'features/ai/domain/repositories/ai_settings_store.dart';
 import 'features/ai/domain/services/ai_client.dart';
 import 'features/ai/domain/tools/analytics_tools.dart';
@@ -72,6 +73,7 @@ Future<void> initDependencies() async {
       LocalNotificationService.new,
     )
     ..registerLazySingleton<AiSettingsStore>(SecureAiSettingsStore.new)
+    ..registerLazySingleton<AiSettingsBus>(AiSettingsBus.new)
     ..registerLazySingleton<AiClient>(HttpAiClient.new)
     ..registerLazySingleton<WalletRepository>(
       () => WalletRepositoryImpl(database: sl(), ledgerBus: sl()),

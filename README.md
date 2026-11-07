@@ -11,8 +11,9 @@ ledger stored in local SQLite. No accounts, no network, no cloud.
 - Edit and delete any transaction, with atomic balance reversal
 - Dashboard: net worth, monthly income vs expense, category breakdown, recent activity
 - Archive wallets; permanent deletion only when the wallet has no history
-- Light and dark Material 3 themes, 48dp targets, text scaling checked at 2.0x
+- Light and dark Material 3 themes, 48dp targets, text scaling checked at 1.3x and 2.0x
 - Offline-first ledger; optional AI quick entry and analytics chat use your own provider key (network required only while AI is enabled)
+- Settings hub with AI status, a plain-language “What AI can see” privacy notice, notification permission controls, and key deletion
 
 ## Tech stack
 
@@ -37,6 +38,8 @@ Project documents:
 
 - [Specification](docs/SPEC.md)
 - [Implementation plan](docs/PLAN.md)
+- [v1.5 specification](docs/SPEC-v1.5.md)
+- [v1.5 implementation plan](docs/PLAN-v1.5.md)
 
 ## Getting started
 
@@ -62,8 +65,9 @@ The suite covers:
 - A 10,000-row benchmark that reports net worth, month totals, category breakdown, recent-list, and wallet-list query times against the 50 ms budget
 - Text scaling at 1.3x and 2.0x, theme contrast ratios, and a 48dp tap-target check
 - AI quick-entry parsing/matching, read-only analytics tools, and mocked provider client tests
+- Settings refresh, privacy copy, notification permission states, and 1.3x/2.0x dark-theme layouts for the AI and subscription screens
 
-Latest run: **219 tests, all passing**.
+Latest run: **227 tests, all passing**.
 
 ## Release build
 

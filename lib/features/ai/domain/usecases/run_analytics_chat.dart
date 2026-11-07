@@ -70,7 +70,9 @@ class RunAnalyticsChat {
             'Use only the provided tools. Never invent numbers. Do not output '
             'SQL. Do not claim access to raw transaction rows or notes. Use '
             'local dates in YYYY-MM-DD format. Keep answers concise and state '
-            'the period being discussed.',
+            'the period being discussed. Reply in plain text with short '
+            'sentences and simple hyphen bullets. Never use Markdown tables, '
+            'headings, bold, or code fences.',
       ),
       ..._trimHistory(history),
       AiChatMessage(role: AiChatRole.user, content: text),
