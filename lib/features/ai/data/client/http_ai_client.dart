@@ -98,8 +98,10 @@ Rules:
           return response;
         }
         if (response.statusCode == 401 || response.statusCode == 403) {
-          throw const AiFailure(
-            'The API key was rejected. Check it in AI settings.',
+          throw AiFailure(
+            '${settings.provider.label} rejected the API key. Make sure the '
+            'Provider matches your key (DeepSeek or OpenAI), then paste the '
+            'secret value again.',
             kind: AiFailureKind.auth,
           );
         }

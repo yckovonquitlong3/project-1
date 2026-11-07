@@ -149,6 +149,11 @@ class _AiSettingsScreenState extends State<AiSettingsScreen> {
   }
 
   Future<void> _save() async {
+    final String? warning = _mode == AiMode.byok ? _modelWarning : null;
+    if (warning != null) {
+      setState(() => _error = warning);
+      return;
+    }
     setState(() {
       _saving = true;
       _error = null;
@@ -220,6 +225,11 @@ class _AiSettingsScreenState extends State<AiSettingsScreen> {
   }
 
   Future<void> _testConnection() async {
+    final String? warning = _mode == AiMode.byok ? _modelWarning : null;
+    if (warning != null) {
+      setState(() => _error = warning);
+      return;
+    }
     final String typedKey = _keyController.text.trim();
     final String? key =
         typedKey.isNotEmpty ? typedKey : await _store.readApiKey();
@@ -310,6 +320,26 @@ class _AiSettingsScreenState extends State<AiSettingsScreen> {
       ..showSnackBar(SnackBar(content: Text(message)));
   }
 
+  String? get _modelWarning {
+    final String model = _modelController.text.trim();
+    if (model.isEmpty) {
+      return null;
+    }
+    final String lower = model.toLowerCase();
+    if (lower.startsWith('sk-') || model.contains(' ')) {
+      return 'Enter a model ID such as ${_provider.defaultModel}, not an API '
+          'key or key name.';
+    }
+    if (_provider == AiProviderPreset.openai && lower.contains('deepseek')) {
+      return 'This looks like a DeepSeek model. Choose DeepSeek as the '
+          'provider.';
+    }
+    if (_provider == AiProviderPreset.deepseek && lower.startsWith('gpt')) {
+      return 'This looks like an OpenAI model. Choose OpenAI as the provider.';
+    }
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -359,7 +389,10 @@ class _AiSettingsScreenState extends State<AiSettingsScreen> {
             key: ValueKey<AiProviderPreset>(_provider),
             initialValue: _provider,
             isExpanded: true,
-            decoration: const InputDecoration(labelText: 'Provider'),
+            decoration: const InputDecoration(
+              labelText: 'Provider',
+              helperText: 'Choose the provider that issued your API key.',
+            ),
             items: AiProviderPreset.values
                 .map(
                   (AiProviderPreset provider) =>
@@ -384,11 +417,23 @@ class _AiSettingsScreenState extends State<AiSettingsScreen> {
           TextField(
             controller: _modelController,
             enabled: !busy,
-            decoration: const InputDecoration(
+            onChanged: (_) => setState(() {}),
+            decoration: InputDecoration(
               labelText: 'Model',
-              helperText: 'Use the current model name from your provider.',
+              helperText: 'Model ID, not your key name. Default: '
+                  '${_provider.defaultModel}',
             ),
           ),
+          if (_modelWarning != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Text(
+                _modelWarning!,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: scheme.error,
+                ),
+              ),
+            ),
           const SizedBox(height: 12),
           TextField(
             controller: _keyController,
@@ -402,7 +447,7 @@ class _AiSettingsScreenState extends State<AiSettingsScreen> {
                   ? 'Key saved — paste a new one to replace'
                   : 'Paste your provider API key',
               helperText:
-                  'Stored in Android secure storage. Never written to the database or logs.',
+                  'Paste the secret value only (no "Bearer"). Stored in Android secure storage; never written to the database or logs.',
               suffixIcon: IconButton(
                 tooltip: _showKey ? 'Hide key' : 'Show key',
                 onPressed: () => setState(() => _showKey = !_showKey),

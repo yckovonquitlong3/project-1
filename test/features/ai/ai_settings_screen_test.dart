@@ -32,7 +32,11 @@ void main() {
 
     await tester.enterText(find.byType(TextField).at(1), 'sk-test');
     final Finder save = find.widgetWithText(FilledButton, 'Save settings');
-    await tester.ensureVisible(save);
+    await tester.scrollUntilVisible(
+      save,
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
     await tester.pumpAndSettle();
     await tester.tap(save);
     await tester.pumpAndSettle();
