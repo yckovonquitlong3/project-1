@@ -186,6 +186,12 @@ class _AiQuickEntryCardState extends State<AiQuickEntryCard> {
                   style: theme.textTheme.labelLarge
                       ?.copyWith(fontWeight: FontWeight.w600),
                 ),
+                const Spacer(),
+                IconButton(
+                  tooltip: 'AI settings',
+                  onPressed: _openSettings,
+                  icon: const Icon(Icons.settings_outlined, size: 20),
+                ),
               ],
             ),
             const SizedBox(height: 4),

@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import 'package:multi_wallet_tracker/core/money/money.dart';
-import 'package:multi_wallet_tracker/features/ai/presentation/screens/ai_settings_screen.dart';
 import 'package:multi_wallet_tracker/features/dashboard/domain/entities/category_breakdown.dart';
 import 'package:multi_wallet_tracker/features/dashboard/domain/entities/dashboard_transaction.dart';
 import 'package:multi_wallet_tracker/features/dashboard/domain/entities/month_summary.dart';
@@ -57,21 +56,7 @@ class DashboardScreen extends StatelessWidget {
     return BlocProvider<DashboardCubit>.value(
       value: cubit,
       child: Scaffold(
-        appBar: AppBar(
-          title: const Text('Dashboard'),
-          actions: <Widget>[
-            IconButton(
-              tooltip: 'AI settings',
-              onPressed: () => Navigator.of(context).push<void>(
-                MaterialPageRoute<void>(
-                  builder: (BuildContext context) =>
-                      const AiSettingsScreen(),
-                ),
-              ),
-              icon: const Icon(Icons.settings_outlined),
-            ),
-          ],
-        ),
+        appBar: AppBar(title: const Text('Dashboard')),
         floatingActionButton: FloatingActionButton.extended(
           onPressed: () => _addTransaction(context),
           icon: const Icon(Icons.add),
