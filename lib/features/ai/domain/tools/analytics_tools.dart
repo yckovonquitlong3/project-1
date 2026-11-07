@@ -23,7 +23,8 @@ class AnalyticsTools {
     AiToolDefinition(
       name: 'get_category_spending',
       description: 'Total expense in one category over an inclusive local-date '
-          'range. The range may not exceed 366 days.',
+          'range. The range may not exceed 366 days. Archived expense '
+          'categories are included so historical totals remain available.',
       parameters: <String, Object?>{
         'type': 'object',
         'properties': <String, Object?>{

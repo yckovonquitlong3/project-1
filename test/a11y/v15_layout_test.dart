@@ -69,7 +69,6 @@ class A11yNotificationService extends LocalNotificationService {
   @override
   Future<bool> notificationsEnabled() async => enabled;
 }
-
 Future<void> pumpAtScales(
   WidgetTester tester,
   Widget Function() build,
@@ -166,8 +165,8 @@ void main() {
       tester,
       () => SettingsScreen(
         settingsStore: store,
-        notificationService: A11yNotificationService(),
-        appSettingsLauncher: _A11yLauncher(),
+        notificationService: A11yNotificationService(enabled: true),
+        appSettingsLauncher: _A11yLauncher(batteryExempt: false),
       ),
     );
   });
@@ -256,6 +255,13 @@ void main() {
 }
 
 class _A11yLauncher extends AppSettingsLauncher {
+  _A11yLauncher({this.batteryExempt = true});
+
+  final bool batteryExempt;
+
   @override
   Future<bool> openNotificationSettings() async => true;
+
+  @override
+  Future<bool> isIgnoringBatteryOptimizations() async => batteryExempt;
 }

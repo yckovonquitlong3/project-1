@@ -47,6 +47,8 @@ TransactionRecord recordFixture({
   String? targetWalletId,
   String? categoryId = 'cat-exp-food-dining',
   String? note,
+  String? subscriptionId,
+  String? billingPeriod,
 }) {
   final DateTime when = DateTime(2026, 11, 5, 10);
   return TransactionRecord(
@@ -59,6 +61,8 @@ TransactionRecord recordFixture({
     occurredAt: when,
     localDate: localDateOf(when),
     note: note,
+    subscriptionId: subscriptionId,
+    billingPeriod: billingPeriod,
     createdAt: when,
     updatedAt: when,
   );

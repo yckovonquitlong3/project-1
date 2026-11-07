@@ -41,6 +41,9 @@ final class EditTransaction {
     DateTime? occurredAt,
     String? note,
   }) async {
+    if (previous.subscriptionId != null) {
+      throw const ConflictFailure(kSubscriptionChargeImmutableMessage);
+    }
     requirePositiveAmount(amount);
     final Money effectiveFee = previous.type == TransactionType.transfer
         ? (fee ?? previous.fee)

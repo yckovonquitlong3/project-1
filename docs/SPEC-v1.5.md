@@ -81,7 +81,7 @@ no bundled AI key in v1.5.**
 ## 4. Technology additions
 
 Versions are resolved with `flutter pub add` at implementation time; do not hardcode guessed
-versions.
+versions. The resolved graph is recorded in `pubspec.lock`.
 
 | Package | Role |
 |---|---|
@@ -90,7 +90,6 @@ versions.
 | `flutter_timezone` | Reads the device's local timezone for scheduling |
 | `flutter_secure_storage` | Encrypted storage for the BYOK key and AI settings |
 | `http` | Direct HTTPS calls to the chosen provider |
-| `connectivity_plus` | Fast offline detection; not a substitute for handling request failures |
 
 **Not added in v1.5:** Supabase, serverless functions, a default proxy, WorkManager/AlarmManager
 background workers. Notification scheduling is handled by `flutter_local_notifications`; deduction
@@ -98,7 +97,8 @@ is handled in the foreground.
 
 ### Android setup
 
-- `INTERNET` and `ACCESS_NETWORK_STATE` for AI.
+- `INTERNET` for AI. Offline detection relies on request failures; no connectivity package is
+  required.
 - `POST_NOTIFICATIONS` on Android 13+ (runtime permission).
 - `RECEIVE_BOOT_COMPLETED` if the notification plugin's boot receiver requires it.
 - Notification icon and channels.
@@ -119,10 +119,16 @@ is handled in the foreground.
 - The migration is **additive**. Existing wallets, categories, and transactions are preserved.
 - A migration test opens a database containing v1 data, upgrades it, and verifies every row plus
   `user_version = 2`.
-- No destructive table rebuild is performed. The project's SQLite build accepts `CHECK`
-  constraints in `ALTER TABLE ADD COLUMN` (verified during planning), so the fee rule is enforced
-  at the database level as well as in the use cases. The new `subscriptions` table has full
-  database checks.
+- No destructive table rebuild is performed. The project's `minSdk` is 24, and the fee `CHECK` is
+  safe on both old and new SQLite builds:
+  - SQLite 3.37+ validates a new `CHECK` against preexisting rows. Every v1 row receives
+    `fee_minor = 0`, which satisfies
+    `CHECK (fee_minor >= 0 AND (fee_minor = 0 OR transaction_type = 'TRANSFER'))`.
+  - Older SQLite versions do not validate the new `CHECK` against preexisting rows, but they still
+    enforce it on every future insert and update.
+  - The use cases validate the fee rule independently, so the database check is defence in depth.
+- The migration test asserts that the database rejects a negative fee and a non-transfer
+  transaction with a fee. No `minSdk` change or table rebuild is required.
 
 ### 5.2 `transactions` additions
 
@@ -149,6 +155,12 @@ Rules:
 - Existing rows receive `fee_minor = 0`, and NULL subscription fields.
 - A subscription with generated transactions cannot be hard-deleted (`ON DELETE RESTRICT`); it must
   be archived instead.
+- Subscription-generated transactions are immutable. Editing or deleting one is rejected by the
+  transaction use cases and the repository, because either operation would free the
+  `(subscription_id, billing_period)` period while leaving `next_billing_at_ms` and
+  `last_paid_at_ms` stale. The transaction detail screen hides Edit/Delete for these rows and
+  explains that the subscription should be archived to stop future charges. A mistaken charge is
+  corrected with a manual adjustment transaction, not by rewriting subscription history.
 
 ### 5.3 `subscriptions`
 
@@ -263,7 +275,9 @@ delete applies `sign = -1`; edit reverses the old record and applies the new one
 - `MonthSummary` gains `fees`.
 - `MonthSummary.expense` includes fees, so `net = income - expense` stays truthful.
 - The category breakdown includes a synthetic row with id `__transfer_fees__`, name
-  "Transfer fees", when fees exist in the month.
+  "Transfer fees", when fees exist in the month. Expense categories are built only from
+  `transaction_type = 'EXPENSE'` rows, so a fee is never attributed to the transfer's
+  `category_id` (which is NULL). The breakdown total therefore equals `MonthSummary.expense`.
 - The dashboard shows the fee portion ("Includes ₱X in transfer fees") when non-zero.
 - Activity and detail screens show the fee on transfer rows.
 - AI monthly-summary tools return `fee_minor` separately as well as within expense.
@@ -272,7 +286,8 @@ delete applies `sign = -1`; edit reverses the old record and applies the new one
 
 Editing a transfer reverses the old `(A + F)` and applies the new `(A + F)` atomically. Deleting
 reverses both the amount and the fee. The old and new records may have different fees, including
-zero.
+zero. This section applies to manual transactions; subscription-generated charges are immutable
+(§5.2).
 
 ---
 
@@ -284,6 +299,7 @@ zero.
 - Edit future behavior; past transactions are never rewritten.
 - Archive (`is_active = 0`): cancel reminders, stop deductions, keep history.
 - Delete: allowed only when no generated transactions; otherwise archive.
+- Generated charges are immutable; see §5.2. Editing a subscription changes only future behavior.
 - Reactivating a subscription uses the existing next billing date; if it is in the past, it becomes
   overdue and is processed on the next run.
 
@@ -337,8 +353,9 @@ and reports how many cycles were paid.
 - Monthly: next month, same anchor day, clamped to the last day of that month.
 - Yearly: next year, same month/day, clamped for leap years.
 - Advancing from a late payment uses the **scheduled date**, not "now", to preserve the anchor.
-- Device-local time is used. A timezone change may shift the local time of the next reminder; this
-  is documented behavior, not silently normalized.
+- Device-local time is used. A timezone or device-clock change may shift existing reminders until
+  the app is next opened/resumed and reschedules them; this is documented behavior, not silently
+  normalized. v1.5 does not run a background timezone receiver.
 - Month-end examples: Jan 31 → Feb 28/29 → Mar 31 (the anchor stays 31).
 
 ### 7.5 Notifications
@@ -351,9 +368,14 @@ and reports how many cycles were paid.
 - Use inexact scheduling (no exact-alarm permission).
 - Runtime notification permission on Android 13+; if denied, show an in-app banner and continue to
   process deductions on open.
-- Boot: rely on the plugin's boot receiver; verify with the Phase 0 spike. Force-stopped apps do
-  not receive alarms until reopened. OEM battery optimizers may delay notifications; provide
-  guidance, not a guarantee.
+- Settings checks `PowerManager.isIgnoringBatteryOptimizations` and, when notifications are on but
+  the app is not exempt, shows a guidance card that opens the system battery-optimization screen.
+  The app does not request the restricted `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` permission.
+- Boot: rely on the plugin's boot receiver. The receiver must declare `android:exported="false"`;
+  system broadcasts still reach a non-exported receiver. Verify with the Phase 0 spike.
+- Force-stopped apps do not receive alarms until reopened. OEM battery optimizers may delay
+  notifications; provide guidance, not a guarantee. `dontkillmyapp.com` may be cited as optional
+  external guidance, but v1.5 does not bundle a link handler.
 
 ### 7.6 Archived references
 
@@ -391,6 +413,15 @@ and reports how many cycles were paid.
 - Settings can test the connection, show a masked key, and disconnect.
 - Keys are cleared on disconnect and never sent anywhere except the provider.
 - Model names are configurable presets; the app must not hardcode a model that may be retired.
+
+| Provider | Default model ID | Notes |
+|---|---|---|
+| OpenAI | `gpt-4o-mini` | Documented starting point; enter the model available to your account. |
+| DeepSeek | `deepseek-chat` | Tool-calling model tested during the v1.5 spike. |
+
+The default is only the initial value shown when a provider is chosen. The model field is
+user-editable, the entered value is stored with the AI config, and the app must not assume the
+default exists or still supports the required calls.
 
 ### 8.3 Natural-language quick-entry
 
@@ -439,13 +470,15 @@ Tools:
 
 | Tool | Arguments | Returns |
 |---|---|---|
-| `get_category_spending` | `category_name`, `start_date`, `end_date` | Total centavos in the local-date range |
+| `get_category_spending` | `category_name`, `start_date`, `end_date` | Total centavos in the local-date range; archived expense categories are included for historical totals |
 | `get_wallet_balances` | none | Active wallet names and balances; archived with non-zero balances |
 | `get_monthly_summary` | `year`, `month` | Income, expense (including fees), fees, net |
 
 Rules:
 
 - Validate category names, ISO dates, ranges (end >= start, at most 366 days), years, and months.
+- Archived expense categories are matchable so historical spending remains queryable. Archived
+  wallets appear in `get_wallet_balances` only when their balance is non-zero.
 - Maximum 4 tool rounds per user message.
 - No write tools, no SQL, no arbitrary table access.
 - Chat history is in memory for the session only; no persistence in v1.5.

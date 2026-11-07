@@ -40,6 +40,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _aiConfigured = false;
   bool _notificationsAvailable = false;
   bool _notificationsEnabled = false;
+  bool _batteryExempt = true;
   AiSettings _settings = const AiSettings();
   String? _error;
 
@@ -71,12 +72,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
       final bool hasKey = await _store.hasApiKey();
       final bool hasConsent = await _store.hasConsent();
       var notificationsEnabled = false;
+      var batteryExempt = true;
       final LocalNotificationService? service = _notifications;
       if (service != null) {
         try {
           notificationsEnabled = await service.notificationsEnabled();
         } catch (_) {
           notificationsEnabled = false;
+        }
+        try {
+          batteryExempt = await _launcher.isIgnoringBatteryOptimizations();
+        } catch (_) {
+          batteryExempt = true;
         }
       }
       if (!mounted) {
@@ -87,6 +94,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         _aiConfigured = hasKey && hasConsent;
         _aiReady = settings.isEnabled && _aiConfigured;
         _notificationsEnabled = notificationsEnabled;
+        _batteryExempt = batteryExempt;
         _loading = false;
         _error = null;
       });
@@ -143,6 +151,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
     if (!opened) {
       _message('Could not open system settings on this device.');
+      return;
+    }
+    await _load();
+  }
+
+  Future<void> _openBatterySettings() async {
+    final bool opened = await _launcher.openBatteryOptimizationSettings();
+    if (!mounted) {
+      return;
+    }
+    if (!opened) {
+      _message('Could not open battery settings on this device.');
       return;
     }
     await _load();
@@ -221,8 +241,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     const _SectionTitle('Notifications'),
                     _NotificationCard(
                       enabled: _notificationsEnabled,
+                      batteryExempt: _batteryExempt,
                       onEnable: _requestNotifications,
                       onOpenSystemSettings: _openSystemNotificationSettings,
+                      onOpenBatterySettings: _openBatterySettings,
                     ),
                   ],
                   const _SectionTitle('Data and privacy'),
@@ -363,18 +385,21 @@ class _AiCard extends StatelessWidget {
 class _NotificationCard extends StatelessWidget {
   const _NotificationCard({
     required this.enabled,
+    required this.batteryExempt,
     required this.onEnable,
     required this.onOpenSystemSettings,
+    required this.onOpenBatterySettings,
   });
 
   final bool enabled;
+  final bool batteryExempt;
   final Future<void> Function() onEnable;
   final Future<void> Function() onOpenSystemSettings;
+  final Future<void> Function() onOpenBatterySettings;
 
   @override
   Widget build(BuildContext context) {
-    final ThemeData theme = Theme.of(context);
-    final ColorScheme scheme = theme.colorScheme;
+    final ColorScheme scheme = Theme.of(context).colorScheme;
 
     return Card(
       elevation: 0,
@@ -390,10 +415,12 @@ class _NotificationCard extends StatelessWidget {
             title: const Text('Subscription reminders'),
             subtitle: Text(
               enabled
-                  ? 'On. Reminders are scheduled on this device.'
+                  ? 'On. Reminders use device local time; changing the time '
+                      'or timezone may shift them until the app is reopened.'
                   : 'Off. Reminders cannot appear until notifications are '
                       'allowed.',
             ),
+            isThreeLine: enabled,
             trailing: enabled
                 ? null
                 : TextButton(
@@ -408,6 +435,24 @@ class _NotificationCard extends StatelessWidget {
               title: const Text('Open system notification settings'),
               trailing: const Icon(Icons.open_in_new),
               onTap: onOpenSystemSettings,
+            ),
+          ],
+          if (enabled && !batteryExempt) ...<Widget>[
+            Divider(height: 1, color: scheme.outlineVariant),
+            ListTile(
+              leading: Icon(
+                Icons.battery_alert_outlined,
+                color: scheme.onSurfaceVariant,
+              ),
+              title: const Text('Allow reminders without battery limits'),
+              subtitle: const Text(
+                'Some phone makers delay notifications for apps that are '
+                'battery-optimized. Open the system setting and allow this app '
+                'to run without restrictions.',
+              ),
+              isThreeLine: true,
+              trailing: const Icon(Icons.chevron_right),
+              onTap: onOpenBatterySettings,
             ),
           ],
         ],

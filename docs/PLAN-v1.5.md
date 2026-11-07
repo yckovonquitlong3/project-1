@@ -74,6 +74,9 @@ copy. Measure duration and verify row counts, `user_version`, and indexes.
 - Add `test/core/migration_v2_test.dart` using a real v1 fixture; assert row preservation,
   `fee_minor = 0`, the new table/indexes, and `user_version = 2`.
 - Assert the database rejects a negative fee and a non-transfer transaction with a fee.
+- Record why `minSdk 24` is safe: existing rows get `fee_minor = 0`, which satisfies the added
+  `CHECK`; SQLite 3.37+ validates that and passes, older builds skip preexisting-row validation but
+  still enforce the check on future writes.
 
 ### Task 1.2 Domain and data model
 
@@ -100,7 +103,9 @@ copy. Measure duration and verify row counts, `user_version`, and indexes.
 - Category breakdown adds the synthetic `__transfer_fees__` row when fees exist.
 - Dashboard shows the fee portion when non-zero.
 - AI monthly-summary tool contract includes `fee_minor` (implemented in Phase 5).
-- Tests: monthly totals, breakdown totals sum to expense, zero-fee month has no fee row.
+- Tests: monthly totals, breakdown totals sum to expense, zero-fee month has no fee row, and a
+  mixed expense + fee-transfer month puts the fee only in `__transfer_fees__` (never under the
+  transfer's NULL category).
 
 **Gate:** full existing suite plus fee/migration tests pass. Manual check: a fee transfer changes
 net worth by exactly the fee and appears in the month's expenses.
@@ -140,6 +145,9 @@ No UI and no OS notifications in this phase.
 - "Mark as Paid" (one cycle) and "Catch up all" (confirmed, oldest first, stops on failure).
 - Run lock to prevent overlapping executions.
 - Emit `LedgerBus` after successful writes.
+- Generated charges are immutable: `EditTransaction` and `DeleteTransaction` reject records with
+  `subscriptionId != null`, and the repository enforces the same guard. Neither operation frees a
+  billing period or leaves `next_billing_at_ms` / `last_paid_at_ms` stale.
 
 ### Task 2.4 Tests
 
@@ -148,6 +156,8 @@ No UI and no OS notifications in this phase.
 - Catch-up: three cycles; one per automatic run; all with `catchUpAll`; stop on insufficient.
 - Month-end/leap/year-end.
 - Charge transaction has the correct date, period, subscription id, category, and fee = 0.
+- Editing or deleting a generated charge is rejected with no balance, row, or subscription-state
+  change. Manual transactions remain editable and deletable.
 - `verifyBalances` empty after every path.
 
 **Gate:** all runner tests pass against the real in-memory schema. No notification or UI code yet.
@@ -175,7 +185,13 @@ No UI and no OS notifications in this phase.
   archive, delete, and app resume.
 - Request `POST_NOTIFICATIONS`; show an in-app banner if denied.
 - Tap payload opens the subscription detail route via a navigator key.
-- Boot rescheduling per the Phase 0 findings.
+- Boot rescheduling per the Phase 0 findings. Keep the plugin's boot receiver at
+  `android:exported="false"`; system broadcasts still reach it.
+- Document timezone and device-clock changes as potential shifts until the next open/resume; v1.5
+  does not run a background timezone receiver.
+- Settings shows battery-optimization guidance when notifications are allowed but the app is not
+  exempt (`PowerManager.isIgnoringBatteryOptimizations`), with a link to the system screen. Do not
+  request `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`.
 
 ### Task 3.3 Triggers
 
@@ -187,8 +203,10 @@ No UI and no OS notifications in this phase.
 
 - Widget tests: list, form validation, overdue banner, mark paid, catch up all, archived section.
 - Fake scheduler: correct stages/IDs, cancellation, permission-denied path.
+- Model defaults: provider presets expose `gpt-4o-mini` and `deepseek-chat`, the field is editable,
+  and a custom model survives save/load.
 - On-device: notifications fire while the app is closed; deduction happens on next open; force-stop
-  limitation confirmed.
+  limitation confirmed; record OEM battery guidance.
 
 **Gate:** device verification passes; no duplicate charges; no background writes.
 
@@ -201,6 +219,8 @@ No UI and no OS notifications in this phase.
 - AI mode: Off / BYOK.
 - Consent screen with exactly what is sent; store consent version.
 - Provider presets (OpenAI, DeepSeek; Gemini only if Phase 0 verified it).
+- Default model IDs are documented starting points: OpenAI `gpt-4o-mini`, DeepSeek
+  `deepseek-chat`. The model field is editable and the entered value is stored with the AI config.
 - Key entry, masked display, test connection, disconnect/clear.
 - Keys in `flutter_secure_storage`; no logging; no SQLite.
 
@@ -239,6 +259,8 @@ No UI and no OS notifications in this phase.
 
 - Implement the three read-only tools against the repositories/DAOs.
 - Validate dates, ranges (≤ 366 days), years, months, and category names.
+- Match archived expense categories too, so historical spending remains queryable; archived wallets
+  appear only when their balance is non-zero.
 - Return aggregates only; no raw rows, notes, or IDs.
 - No write tools, no SQL generation; max 4 tool rounds.
 
@@ -253,6 +275,7 @@ No UI and no OS notifications in this phase.
 ### Task 5.3 Tests
 
 - Tool argument bounds and `verifyBalances` read-only behavior.
+- Archived-category historical spend and archived-wallet balance rules.
 - No write tool is exposed.
 - Max rounds, timeout, and error fallbacks.
 - Fake provider fixtures; no live calls.
@@ -276,6 +299,52 @@ No UI and no OS notifications in this phase.
 
 ---
 
+## Phase 6.5 — v1.5 review hardening
+
+Follow-up from the SPEC/PLAN review. These are correctness and documentation fixes, not new
+features.
+
+### Task 6.5.1 Subscription charge immutability (blocking)
+
+- Reject `EditTransaction` and `DeleteTransaction` when `record.subscriptionId != null`; enforce the
+  same guard in `TransactionRepositoryImpl`.
+- Hide Edit/Delete on the transaction detail screen for generated charges and explain that the
+  subscription should be archived to stop future charges.
+- Tests: edit/delete blocked with no balance, row, unique-index, or subscription-state change;
+  manual transactions still editable/deletable.
+- Update SPEC §5.2/§6.4/§7.1 and PLAN Task 2.3/2.4/3.1.
+
+### Task 6.5.2 Fee and reporting verification
+
+- Add the negative-fee database test and record the `minSdk 24` CHECK rationale.
+- Add an explicit breakdown test: `__transfer_fees__` is the only fee bucket, and the breakdown
+  total equals `MonthSummary.expense` in a mixed expense + fee-transfer month.
+
+### Task 6.5.3 Notification timing, boot, and battery guidance
+
+- Document timezone and device-clock shifts in SPEC §7.4 and add a Settings note.
+- Verify the boot receiver remains `android:exported="false"` and record the force-stop/OEM result
+  after the user's device test.
+- Add a Settings battery-optimization card using `PowerManager.isIgnoringBatteryOptimizations`;
+  open the system screen without requesting `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`.
+- No background timezone receiver; rescheduling stays on start/resume and CRUD.
+
+### Task 6.5.4 AI contract docs and model defaults
+
+- Document that `get_category_spending` includes archived expense categories; add a test.
+- Document the default model IDs (`gpt-4o-mini`, `deepseek-chat`) as editable starting points; add a
+  custom-model save/load test.
+
+### Task 6.5.5 Dependency and documentation hygiene
+
+- Add future dependencies with `flutter pub add`; keep `pubspec.lock` committed.
+- Remove the stale `connectivity_plus` / `ACCESS_NETWORK_STATE` references from the v1.5 spec.
+
+**Gate:** analyzer clean; full suite passes; manual test confirms subscription-generated charges
+cannot be edited or deleted from the detail screen.
+
+---
+
 ## Phase 7 — QA and release
 
 ### Task 7.1 Regression and performance
@@ -296,7 +365,7 @@ No UI and no OS notifications in this phase.
 ### Task 7.3 Release
 
 - App version `1.5.0+2`; schema v2.
-- Release APK; inspect permissions (`INTERNET`, `ACCESS_NETWORK_STATE`, `POST_NOTIFICATIONS`, boot).
+- Release APK; inspect permissions (`INTERNET`, `POST_NOTIFICATIONS`, boot).
 - Privacy policy/Data Safety notes.
 - README and docs updated; tag `v1.5.0` after approval.
 
@@ -316,6 +385,7 @@ data.
 | 4 | AI quick-entry parsing, matching, fallback, key security |
 | 5 | Read-only tools, chat errors, no writes |
 | 6 | 1.3x/2.0x, contrast, 48dp, four-tab navigation |
+| 6.5 | Charge immutability, fee/reporting checks, battery guidance, AI contract docs |
 | 7 | Full regression, 10k performance, real-device migration, release APK |
 
 ---
@@ -326,6 +396,7 @@ data.
   device check.
 - No background database writes; no proxy; AI is off by default and BYOK only.
 - All fee paths go through `applyEffect`; `verifyBalances` is empty.
+- Subscription-generated charges are immutable; manual transactions remain editable/deletable.
 - The v1 → v2 migration preserves all existing data.
 - Keys never appear in logs, source, SQLite, or crash output.
 - `flutter analyze` is clean; the full test suite passes.

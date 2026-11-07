@@ -27,13 +27,24 @@ class FakeNotificationService extends LocalNotificationService {
 }
 
 class FakeSettingsLauncher extends AppSettingsLauncher {
-  FakeSettingsLauncher();
+  FakeSettingsLauncher({this.batteryExempt = true});
 
   bool opened = false;
+  bool batteryOpened = false;
+  bool batteryExempt;
 
   @override
   Future<bool> openNotificationSettings() async {
     opened = true;
+    return true;
+  }
+
+  @override
+  Future<bool> isIgnoringBatteryOptimizations() async => batteryExempt;
+
+  @override
+  Future<bool> openBatteryOptimizationSettings() async {
+    batteryOpened = true;
     return true;
   }
 }
@@ -113,8 +124,44 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(notifications.requestCalls, 1);
-    expect(find.textContaining('On. Reminders are scheduled'), findsOneWidget);
+    expect(
+      find.textContaining('On. Reminders use device local time'),
+      findsOneWidget,
+    );
     expect(find.text('Enable'), findsNothing);
+  });
+
+  testWidgets('prompts for battery exemption when reminders are on',
+      (WidgetTester tester) async {
+    final FakeAiSettingsStore store = FakeAiSettingsStore(
+      settings: const AiSettings(),
+    );
+    final FakeNotificationService notifications =
+        FakeNotificationService(enabled: true);
+    final FakeSettingsLauncher launcher =
+        FakeSettingsLauncher(batteryExempt: false);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light,
+        home: SettingsScreen(
+          settingsStore: store,
+          notificationService: notifications,
+          appSettingsLauncher: launcher,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text('Allow reminders without battery limits'),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.text('Allow reminders without battery limits'));
+    await tester.pumpAndSettle();
+
+    expect(launcher.batteryOpened, isTrue);
   });
 
   testWidgets('shows that AI is off without a saved key',

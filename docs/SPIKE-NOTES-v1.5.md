@@ -30,6 +30,8 @@ usability problem. The boot receiver is configured; reboot verification remains.
 
 - `POST_NOTIFICATIONS` and `RECEIVE_BOOT_COMPLETED`.
 - `ScheduledNotificationReceiver` and `ScheduledNotificationBootReceiver`.
+- The boot receiver stays `android:exported="false"`, matching the plugin README. System broadcasts
+  still reach a non-exported receiver; do not change this to `true`.
 - Core library desugaring in `android/app/build.gradle.kts`.
 - `flutter_local_notifications` 22.3.3, `timezone` 0.11.2, `flutter_timezone` 5.1.1.
 

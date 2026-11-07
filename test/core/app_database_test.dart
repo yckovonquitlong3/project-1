@@ -89,6 +89,41 @@ void main() {
     );
   });
 
+  test('rejects a negative transfer fee', () async {
+    await db.insert('wallets', <String, Object?>{
+      'id': 'w1',
+      'name': 'Cash',
+      'account_type': 'CASH',
+      'icon_identifier': 'payments',
+      'created_at_ms': 0,
+      'updated_at_ms': 0,
+    });
+    await db.insert('wallets', <String, Object?>{
+      'id': 'w2',
+      'name': 'Bank',
+      'account_type': 'BANK',
+      'icon_identifier': 'account_balance',
+      'created_at_ms': 0,
+      'updated_at_ms': 0,
+    });
+
+    await expectLater(
+      db.insert('transactions', <String, Object?>{
+        'id': 'negative-fee',
+        'amount_minor': 100,
+        'fee_minor': -1,
+        'transaction_type': 'TRANSFER',
+        'source_wallet_id': 'w1',
+        'target_wallet_id': 'w2',
+        'occurred_at_ms': 0,
+        'local_date': '2026-11-01',
+        'created_at_ms': 0,
+        'updated_at_ms': 0,
+      }),
+      throwsA(isA<DatabaseException>()),
+    );
+  });
+
   test('enables foreign keys on this connection', () async {
     final List<Map<String, Object?>> rows = await db.rawQuery('PRAGMA foreign_keys');
     expect(rows.first.values.first, 1);

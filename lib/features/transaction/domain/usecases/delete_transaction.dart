@@ -13,6 +13,9 @@ final class DeleteTransaction {
     if (record == null) {
       throw const NotFoundFailure('Transaction not found');
     }
+    if (record.subscriptionId != null) {
+      throw const ConflictFailure(kSubscriptionChargeImmutableMessage);
+    }
     await _transactionRepo.delete(record);
   }
 }

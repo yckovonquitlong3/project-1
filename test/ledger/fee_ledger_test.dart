@@ -12,6 +12,7 @@ import 'package:multi_wallet_tracker/features/dashboard/domain/usecases/get_mont
 import 'package:multi_wallet_tracker/features/dashboard/domain/usecases/get_net_worth.dart';
 import 'package:multi_wallet_tracker/features/transaction/data/repositories/transaction_repository_impl.dart';
 import 'package:multi_wallet_tracker/features/transaction/domain/entities/transaction_record.dart';
+import 'package:multi_wallet_tracker/features/transaction/domain/entities/transaction_type.dart';
 import 'package:multi_wallet_tracker/features/transaction/domain/usecases/delete_transaction.dart';
 import 'package:multi_wallet_tracker/features/transaction/domain/usecases/edit_transaction.dart';
 import 'package:multi_wallet_tracker/features/transaction/domain/usecases/transfer_money.dart';
@@ -130,6 +131,62 @@ void main() {
       (CategoryBreakdown item) => item.categoryId == '__transfer_fees__',
     );
     expect(fees.total, const Money(1500));
+  });
+
+  test('a fee is reported once and the breakdown sums to expense', () async {
+    final Wallet bank = await seedWallet('Bank', openingMinor: 500000);
+    final Wallet gcash = await seedWallet('GCash', openingMinor: 100000);
+    final DateTime when = DateTime(2026, 11, 6, 10);
+
+    await transferMoney(
+      amount: const Money(100000),
+      sourceWalletId: bank.id,
+      targetWalletId: gcash.id,
+      fee: const Money(1500),
+      occurredAt: when,
+    );
+    await transactions.record(
+      TransactionRecord(
+        id: 'nov-food',
+        amount: const Money(5000),
+        type: TransactionType.expense,
+        sourceWalletId: gcash.id,
+        categoryId: 'cat-exp-food-dining',
+        occurredAt: when,
+        localDate: '2026-11-06',
+        createdAt: when,
+        updatedAt: when,
+      ),
+    );
+
+    final MonthSummary summary =
+        await getMonthSummary(month: DateTime(2026, 11));
+    final List<CategoryBreakdown> breakdown =
+        await getCategoryBreakdown(month: DateTime(2026, 11));
+
+    expect(summary.expense, const Money(6500));
+    expect(
+      breakdown
+          .singleWhere(
+            (CategoryBreakdown item) =>
+                item.categoryId == 'cat-exp-food-dining',
+          )
+          .total,
+      const Money(5000),
+    );
+    expect(
+      breakdown.singleWhere(
+        (CategoryBreakdown item) => item.categoryId == '__transfer_fees__',
+      ).total,
+      const Money(1500),
+    );
+    expect(
+      breakdown.fold<int>(
+        0,
+        (int sum, CategoryBreakdown item) => sum + item.total.minorUnits,
+      ),
+      summary.expense.minorUnits,
+    );
   });
 
   test('a zero fee keeps net worth unchanged and adds no fee row', () async {

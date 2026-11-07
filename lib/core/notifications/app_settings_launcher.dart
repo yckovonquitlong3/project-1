@@ -21,4 +21,30 @@ class AppSettingsLauncher {
       return false;
     }
   }
+
+  /// Whether Android currently exempts this app from battery optimizations.
+  Future<bool> isIgnoringBatteryOptimizations() async {
+    try {
+      return await _channel
+              .invokeMethod<bool>('isIgnoringBatteryOptimizations') ??
+          false;
+    } on PlatformException {
+      return false;
+    } on MissingPluginException {
+      return false;
+    }
+  }
+
+  /// Opens the system battery-optimization list.
+  Future<bool> openBatteryOptimizationSettings() async {
+    try {
+      return await _channel
+              .invokeMethod<bool>('openBatteryOptimizationSettings') ??
+          false;
+    } on PlatformException {
+      return false;
+    } on MissingPluginException {
+      return false;
+    }
+  }
 }

@@ -136,6 +136,39 @@ void main() {
     expect(november['total_minor'], 10000);
   });
 
+  test('matches archived categories for historical spending', () async {
+    final Wallet wallet = await seedWallet();
+    await transactions.record(
+      entry(
+        id: 'archived-category-expense',
+        type: TransactionType.expense,
+        amountMinor: 25000,
+        categoryId: 'cat-exp-food-dining',
+        occurredAt: DateTime(2026, 10, 15, 10),
+        walletId: wallet.id,
+      ),
+    );
+    final db = await appDatabase.database;
+    await db.update(
+      'categories',
+      <String, Object?>{'is_archived': 1},
+      where: 'id = ?',
+      whereArgs: <Object?>['cat-exp-food-dining'],
+    );
+
+    final Map<String, Object?> result = await tools.execute(
+      name: 'get_category_spending',
+      arguments: <String, Object?>{
+        'category_name': 'Food & Dining',
+        'start_date': '2026-10-01',
+        'end_date': '2026-10-31',
+      },
+    );
+
+    expect(result['total_minor'], 25000);
+    expect(result['category'], 'Food & Dining');
+  });
+
   test('returns wallet balances and net worth without ids', () async {
     final Wallet wallet = await seedWallet();
     await transactions.record(

@@ -39,6 +39,9 @@ class TransactionRepositoryImpl implements TransactionRepository {
     TransactionRecord previous,
     TransactionRecord updated,
   ) async {
+    if (previous.subscriptionId != null || updated.subscriptionId != null) {
+      throw const ConflictFailure(kSubscriptionChargeImmutableMessage);
+    }
     final Database db = await _db.database;
     try {
       await db.transaction((Transaction txn) async {
@@ -55,6 +58,9 @@ class TransactionRepositoryImpl implements TransactionRepository {
 
   @override
   Future<void> delete(TransactionRecord record) async {
+    if (record.subscriptionId != null) {
+      throw const ConflictFailure(kSubscriptionChargeImmutableMessage);
+    }
     final Database db = await _db.database;
     try {
       await db.transaction((Transaction txn) async {
