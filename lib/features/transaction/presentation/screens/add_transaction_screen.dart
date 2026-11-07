@@ -8,6 +8,7 @@ import 'package:multi_wallet_tracker/core/money/money.dart';
 import 'package:multi_wallet_tracker/features/category/domain/entities/category.dart';
 import 'package:multi_wallet_tracker/features/category/domain/usecases/get_categories.dart';
 import 'package:multi_wallet_tracker/features/transaction/domain/entities/transaction_detail.dart';
+import 'package:multi_wallet_tracker/features/transaction/domain/entities/transaction_draft.dart';
 import 'package:multi_wallet_tracker/features/transaction/domain/entities/transaction_type.dart';
 import 'package:multi_wallet_tracker/features/transaction/presentation/cubit/transaction_cubit.dart';
 import 'package:multi_wallet_tracker/features/transaction/presentation/cubit/transaction_state.dart';
@@ -23,12 +24,14 @@ class AddTransactionScreen extends StatefulWidget {
   const AddTransactionScreen({
     super.key,
     this.existing,
+    this.draft,
     this.cubit,
     this.activeWallets,
     this.categories,
-  });
+  }) : assert(existing == null || draft == null);
 
   final TransactionDetail? existing;
+  final TransactionDraft? draft;
   final TransactionCubit? cubit;
 
   /// Test seams. In the app these load from the use cases.
@@ -57,25 +60,34 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   String? _loadError;
 
   bool get _isEditing => widget.existing != null;
+  bool get _hasDraft => widget.draft != null;
 
   @override
   void initState() {
     super.initState();
     final TransactionDetail? detail = widget.existing;
-    _type = detail?.record.type ?? TransactionType.expense;
+    final TransactionDraft? draft = widget.draft;
+    _type = detail?.record.type ?? draft?.type ?? TransactionType.expense;
     _occurredAt = detail?.record.occurredAt ?? DateTime.now();
     _amountController = TextEditingController(
-      text: detail == null ? '' : _amountText(detail.record.amount),
+      text: detail != null
+          ? _amountText(detail.record.amount)
+          : draft?.amount == null
+              ? ''
+              : _amountText(draft!.amount!),
     );
     _feeController = TextEditingController(
       text: detail == null || detail.record.fee.isZero
           ? ''
           : _amountText(detail.record.fee),
     );
-    _noteController = TextEditingController(text: detail?.record.note ?? '');
-    _sourceWalletId = detail?.record.sourceWalletId;
+    _noteController = TextEditingController(
+      text: detail?.record.note ?? draft?.note ?? '',
+    );
+    _sourceWalletId =
+        detail?.record.sourceWalletId ?? draft?.sourceWalletId;
     _targetWalletId = detail?.record.targetWalletId;
-    _categoryId = detail?.record.categoryId;
+    _categoryId = detail?.record.categoryId ?? draft?.categoryId;
     _ownsCubit = widget.cubit == null;
     _cubit = widget.cubit ?? sl<TransactionCubit>();
     unawaited(_loadReference());
@@ -171,6 +183,10 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   }
 
   void _applyDefaults() {
+    if (_hasDraft) {
+      // The AI supplied what it could; leave missing fields for the user.
+      return;
+    }
     if (_sourceWalletId == null && _wallets.isNotEmpty) {
       _sourceWalletId = _wallets.first.id;
     }
@@ -420,6 +436,35 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                         _changeType(selection.first),
               ),
             ),
+            if (_hasDraft) ...<Widget>[
+              const SizedBox(height: 12),
+              Card(
+                elevation: 0,
+                color: scheme.secondaryContainer,
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Row(
+                    children: <Widget>[
+                      Icon(
+                        Icons.auto_awesome,
+                        size: 20,
+                        color: scheme.onSecondaryContainer,
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          'Review the AI suggestion. Nothing is saved until '
+                          'you tap Add transaction.',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: scheme.onSecondaryContainer,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
             const SizedBox(height: 20),
             TextFormField(
               controller: _amountController,

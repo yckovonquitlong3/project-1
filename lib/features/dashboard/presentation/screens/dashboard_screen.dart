@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import 'package:multi_wallet_tracker/core/money/money.dart';
+import 'package:multi_wallet_tracker/features/ai/presentation/screens/ai_settings_screen.dart';
 import 'package:multi_wallet_tracker/features/dashboard/domain/entities/category_breakdown.dart';
 import 'package:multi_wallet_tracker/features/dashboard/domain/entities/dashboard_transaction.dart';
 import 'package:multi_wallet_tracker/features/dashboard/domain/entities/month_summary.dart';
@@ -20,11 +21,13 @@ class DashboardScreen extends StatelessWidget {
     super.key,
     this.onOpenWallets,
     this.onOpenActivity,
+    this.quickEntry,
   });
 
   final DashboardCubit cubit;
   final VoidCallback? onOpenWallets;
   final VoidCallback? onOpenActivity;
+  final Widget? quickEntry;
 
   Future<void> _addTransaction(BuildContext context) async {
     await Navigator.of(context).push<bool>(
@@ -54,7 +57,21 @@ class DashboardScreen extends StatelessWidget {
     return BlocProvider<DashboardCubit>.value(
       value: cubit,
       child: Scaffold(
-        appBar: AppBar(title: const Text('Dashboard')),
+        appBar: AppBar(
+          title: const Text('Dashboard'),
+          actions: <Widget>[
+            IconButton(
+              tooltip: 'AI settings',
+              onPressed: () => Navigator.of(context).push<void>(
+                MaterialPageRoute<void>(
+                  builder: (BuildContext context) =>
+                      const AiSettingsScreen(),
+                ),
+              ),
+              icon: const Icon(Icons.settings_outlined),
+            ),
+          ],
+        ),
         floatingActionButton: FloatingActionButton.extended(
           onPressed: () => _addTransaction(context),
           icon: const Icon(Icons.add),
@@ -78,6 +95,7 @@ class DashboardScreen extends StatelessWidget {
                   onOpenActivity: onOpenActivity,
                   onTransactionTap: (String id) =>
                       _openTransaction(context, id),
+                  quickEntry: quickEntry,
                 ),
             };
           },
@@ -95,6 +113,7 @@ class _DashboardBody extends StatelessWidget {
     required this.onOpenWallets,
     required this.onOpenActivity,
     required this.onTransactionTap,
+    this.quickEntry,
   });
 
   final DashboardLoaded state;
@@ -103,6 +122,7 @@ class _DashboardBody extends StatelessWidget {
   final VoidCallback? onOpenWallets;
   final VoidCallback? onOpenActivity;
   final ValueChanged<String> onTransactionTap;
+  final Widget? quickEntry;
 
   @override
   Widget build(BuildContext context) {
@@ -128,6 +148,10 @@ class _DashboardBody extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           _MonthCard(state: state),
+          if (quickEntry != null) ...<Widget>[
+            const SizedBox(height: 16),
+            quickEntry!,
+          ],
           if (state.wallets.isNotEmpty) ...<Widget>[
             _SectionHeader(
               title: 'Wallets',

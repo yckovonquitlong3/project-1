@@ -3,6 +3,11 @@ import 'package:get_it/get_it.dart';
 import 'core/database/app_database.dart';
 import 'core/ledger/ledger_bus.dart';
 import 'core/notifications/local_notification_service.dart';
+import 'features/ai/data/client/http_ai_client.dart';
+import 'features/ai/data/settings/secure_ai_settings_store.dart';
+import 'features/ai/domain/repositories/ai_settings_store.dart';
+import 'features/ai/domain/services/ai_client.dart';
+import 'features/ai/domain/usecases/parse_quick_entry.dart';
 import 'features/category/data/repositories/category_repository_impl.dart';
 import 'features/category/domain/repositories/category_repository.dart';
 import 'features/category/domain/usecases/get_categories.dart';
@@ -63,6 +68,8 @@ Future<void> initDependencies() async {
     ..registerLazySingleton<LocalNotificationService>(
       LocalNotificationService.new,
     )
+    ..registerLazySingleton<AiSettingsStore>(SecureAiSettingsStore.new)
+    ..registerLazySingleton<AiClient>(HttpAiClient.new)
     ..registerLazySingleton<WalletRepository>(
       () => WalletRepositoryImpl(database: sl(), ledgerBus: sl()),
     )
@@ -236,6 +243,14 @@ Future<void> initDependencies() async {
         getWallets: sl(),
         getCategories: sl(),
         coordinator: sl(),
+      ),
+    )
+    ..registerLazySingleton<ParseQuickEntry>(
+      () => ParseQuickEntry(
+        settings: sl(),
+        client: sl(),
+        wallets: sl(),
+        categories: sl(),
       ),
     );
 

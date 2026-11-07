@@ -18,12 +18,14 @@ class MultiWalletApp extends StatelessWidget {
     required this.walletCubit,
     required this.dashboardCubit,
     this.notificationService,
+    this.quickEntry,
     super.key,
   });
 
   final WalletCubit walletCubit;
   final DashboardCubit dashboardCubit;
   final LocalNotificationService? notificationService;
+  final Widget? quickEntry;
 
   @override
   Widget build(BuildContext context) {
@@ -36,6 +38,7 @@ class MultiWalletApp extends StatelessWidget {
         walletCubit: walletCubit,
         dashboardCubit: dashboardCubit,
         notificationService: notificationService,
+        quickEntry: quickEntry,
       ),
     );
   }
@@ -47,12 +50,14 @@ class HomeShell extends StatefulWidget {
     required this.walletCubit,
     required this.dashboardCubit,
     this.notificationService,
+    this.quickEntry,
     super.key,
   });
 
   final WalletCubit walletCubit;
   final DashboardCubit dashboardCubit;
   final LocalNotificationService? notificationService;
+  final Widget? quickEntry;
 
   @override
   State<HomeShell> createState() => _HomeShellState();
@@ -124,6 +129,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
               cubit: widget.dashboardCubit,
               onOpenWallets: () => _select(1),
               onOpenActivity: () => _select(2),
+              quickEntry: widget.quickEntry,
             ),
           1 => WalletListScreen(cubit: widget.walletCubit),
           2 => const TransactionsScreen(),

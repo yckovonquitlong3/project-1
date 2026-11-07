@@ -12,7 +12,7 @@ ledger stored in local SQLite. No accounts, no network, no cloud.
 - Dashboard: net worth, monthly income vs expense, category breakdown, recent activity
 - Archive wallets; permanent deletion only when the wallet has no history
 - Light and dark Material 3 themes, 48dp targets, text scaling checked at 2.0x
-- 100% offline: the release build declares no internet permission
+- Offline-first ledger; optional AI quick entry uses your own provider key (network required only while AI is enabled)
 
 ## Tech stack
 
@@ -62,7 +62,7 @@ The suite covers:
 - A 10,000-row benchmark that reports net worth, month totals, category breakdown, recent-list, and wallet-list query times against the 50 ms budget
 - Text scaling at 1.3x and 2.0x, theme contrast ratios, and a 48dp tap-target check
 
-Latest run: **118 tests, all passing**.
+Latest run: **197 tests, all passing**.
 
 ## Release build
 
@@ -78,6 +78,4 @@ publishing to Google Play.
 
 ## Offline verification
 
-The merged release manifest declares no `android.permission.INTERNET`. To verify
-on a device: enable airplane mode, create wallets and transactions, force-stop
-the app, then reopen it — all data is still there.
+The core ledger works in airplane mode. AI quick entry is optional, off by default, and uses your own provider key (BYOK); there is no proxy. The release manifest declares `INTERNET` for that optional feature. To verify the ledger offline: enable airplane mode, create wallets and transactions, force-stop the app, then reopen it — all data is still there.

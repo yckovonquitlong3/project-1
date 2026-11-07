@@ -1,6 +1,6 @@
 /// Domain-level failures. Repositories throw these instead of leaking
 /// `sqflite` exceptions into the presentation layer.
-sealed class Failure implements Exception {
+abstract base class Failure implements Exception {
   const Failure(this.message, {this.cause});
 
   final String message;

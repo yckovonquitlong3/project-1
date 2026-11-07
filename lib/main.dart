@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import 'app.dart';
 import 'core/notifications/local_notification_service.dart';
+import 'features/ai/presentation/widgets/ai_quick_entry_card.dart';
 import 'features/dashboard/presentation/cubit/dashboard_cubit.dart';
 import 'features/subscription/domain/usecases/subscription_coordinator.dart';
 import 'features/wallet/presentation/cubit/wallet_cubit.dart';
@@ -30,6 +31,7 @@ Future<void> main() async {
       walletCubit: walletCubit,
       dashboardCubit: dashboardCubit,
       notificationService: notifications,
+      quickEntry: const AiQuickEntryCard(),
     ),
   );
 
