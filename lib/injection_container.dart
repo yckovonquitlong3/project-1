@@ -7,7 +7,10 @@ import 'features/ai/data/client/http_ai_client.dart';
 import 'features/ai/data/settings/secure_ai_settings_store.dart';
 import 'features/ai/domain/repositories/ai_settings_store.dart';
 import 'features/ai/domain/services/ai_client.dart';
+import 'features/ai/domain/tools/analytics_tools.dart';
 import 'features/ai/domain/usecases/parse_quick_entry.dart';
+import 'features/ai/domain/usecases/run_analytics_chat.dart';
+import 'features/ai/presentation/cubit/analytics_chat_cubit.dart';
 import 'features/category/data/repositories/category_repository_impl.dart';
 import 'features/category/domain/repositories/category_repository.dart';
 import 'features/category/domain/usecases/get_categories.dart';
@@ -251,6 +254,26 @@ Future<void> initDependencies() async {
         client: sl(),
         wallets: sl(),
         categories: sl(),
+      ),
+    )
+    ..registerLazySingleton<AnalyticsTools>(
+      () => AnalyticsTools(
+        dashboard: sl(),
+        wallets: sl(),
+        categories: sl(),
+      ),
+    )
+    ..registerLazySingleton<RunAnalyticsChat>(
+      () => RunAnalyticsChat(
+        settings: sl(),
+        client: sl(),
+        tools: sl(),
+      ),
+    )
+    ..registerFactory<AnalyticsChatCubit>(
+      () => AnalyticsChatCubit(
+        settings: sl(),
+        chat: sl(),
       ),
     );
 

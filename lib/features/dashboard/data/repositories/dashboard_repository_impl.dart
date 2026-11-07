@@ -94,8 +94,28 @@ class DashboardRepositoryImpl implements DashboardRepository {
   }
 
   @override
-  Future<List<DashboardTransaction>> recentTransactions({int limit = 20}) async {
+  Future<Money> categorySpending({
+    required String categoryId,
+    required String startDate,
+    required String endDate,
+  }) async {
     final Database db = await _db.database;
+    try {
+      return Money(
+        await _dao.categorySpendingMinor(
+          db,
+          categoryId,
+          startDate,
+          endDate,
+        ),
+      );
+    } on DatabaseException catch (error) {
+      throw DatabaseFailure('Could not load category spending', cause: error);
+    }
+  }
+
+  @override
+  Future<List<DashboardTransaction>> recentTransactions({int limit = 20}) async {    final Database db = await _db.database;
     try {
       final List<Map<String, Object?>> rows =
           await _dao.recent(db, limit: limit);

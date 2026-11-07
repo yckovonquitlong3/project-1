@@ -11,5 +11,12 @@ abstract interface class DashboardRepository {
 
   Future<List<CategoryBreakdown>> categoryBreakdown(DateTime month);
 
+  /// Expense total for one category in an inclusive local-date range.
+  Future<Money> categorySpending({
+    required String categoryId,
+    required String startDate,
+    required String endDate,
+  });
+
   Future<List<DashboardTransaction>> recentTransactions({int limit = 20});
 }

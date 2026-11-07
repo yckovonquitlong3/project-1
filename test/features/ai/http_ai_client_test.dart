@@ -5,9 +5,11 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:multi_wallet_tracker/features/ai/data/client/http_ai_client.dart';
 import 'package:multi_wallet_tracker/features/ai/domain/ai_failure.dart';
+import 'package:multi_wallet_tracker/features/ai/domain/entities/ai_chat.dart';
 import 'package:multi_wallet_tracker/features/ai/domain/entities/ai_mode.dart';
 import 'package:multi_wallet_tracker/features/ai/domain/entities/ai_settings.dart';
 import 'package:multi_wallet_tracker/features/ai/domain/entities/quick_entry_suggestion.dart';
+import 'package:multi_wallet_tracker/features/ai/domain/tools/analytics_tools.dart';
 import 'package:multi_wallet_tracker/features/transaction/domain/entities/transaction_type.dart';
 
 http.Response chatResponse(String content) {
@@ -232,5 +234,66 @@ void main() {
     );
 
     await client.testConnection(settings: settings, apiKey: 'k');
+  });
+
+  test('sends tools and parses a tool call from chat', () async {
+    final HttpAiClient client = HttpAiClient(
+      client: MockClient((http.Request request) async {
+        final Map<String, dynamic> body =
+            jsonDecode(request.body) as Map<String, dynamic>;
+        expect(body['tool_choice'], 'auto');
+        expect(body['messages'], isNotEmpty);
+        final List<dynamic> tools = body['tools'] as List<dynamic>;
+        expect(
+          tools.any(
+            (dynamic tool) =>
+                (tool as Map<String, dynamic>)['function']['name'] ==
+                'get_wallet_balances',
+          ),
+          isTrue,
+        );
+        return http.Response(
+          jsonEncode(<String, Object?>{
+            'choices': <Object?>[
+              <String, Object?>{
+                'message': <String, Object?>{
+                  'content': null,
+                  'tool_calls': <Object?>[
+                    <String, Object?>{
+                      'id': 'call-1',
+                      'type': 'function',
+                      'function': <String, Object?>{
+                        'name': 'get_wallet_balances',
+                        'arguments': '{}',
+                      },
+                    },
+                  ],
+                },
+              },
+            ],
+          }),
+          200,
+        );
+      }),
+    );
+
+    final AiChatResponse response = await client.chat(
+      messages: <AiChatMessage>[
+        const AiChatMessage(role: AiChatRole.system, content: 'system'),
+        const AiChatMessage(
+          role: AiChatRole.user,
+          content: 'What are my balances?',
+        ),
+      ],
+      tools: AnalyticsTools.definitions,
+      settings: settings,
+      apiKey: 'k',
+    );
+
+    expect(response.content, isNull);
+    expect(response.toolCalls.length, 1);
+    expect(response.toolCalls.single.id, 'call-1');
+    expect(response.toolCalls.single.name, 'get_wallet_balances');
+    expect(response.toolCalls.single.arguments, isEmpty);
   });
 }

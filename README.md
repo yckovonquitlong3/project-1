@@ -12,7 +12,7 @@ ledger stored in local SQLite. No accounts, no network, no cloud.
 - Dashboard: net worth, monthly income vs expense, category breakdown, recent activity
 - Archive wallets; permanent deletion only when the wallet has no history
 - Light and dark Material 3 themes, 48dp targets, text scaling checked at 2.0x
-- Offline-first ledger; optional AI quick entry uses your own provider key (network required only while AI is enabled)
+- Offline-first ledger; optional AI quick entry and analytics chat use your own provider key (network required only while AI is enabled)
 
 ## Tech stack
 
@@ -61,8 +61,9 @@ The suite covers:
 - All ten acceptance scenarios from `docs/SPEC.md`
 - A 10,000-row benchmark that reports net worth, month totals, category breakdown, recent-list, and wallet-list query times against the 50 ms budget
 - Text scaling at 1.3x and 2.0x, theme contrast ratios, and a 48dp tap-target check
+- AI quick-entry parsing/matching, read-only analytics tools, and mocked provider client tests
 
-Latest run: **197 tests, all passing**.
+Latest run: **219 tests, all passing**.
 
 ## Release build
 

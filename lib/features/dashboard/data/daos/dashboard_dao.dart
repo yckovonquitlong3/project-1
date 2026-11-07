@@ -40,8 +40,7 @@ WHERE local_date >= ? AND local_date < ?
     DatabaseExecutor db,
     String start,
     String end,
-  ) {
-    return db.rawQuery(
+  ) {    return db.rawQuery(
       '''
 SELECT c.id AS category_id, c.name AS name, c.color_hex AS color_hex,
        SUM(t.amount_minor) AS total
@@ -56,11 +55,31 @@ ORDER BY total DESC, c.name ASC
     );
   }
 
+  /// Sum of expense amounts for one category in the inclusive local-date
+  /// range `[start, end]`.
+  Future<int> categorySpendingMinor(
+    DatabaseExecutor db,
+    String categoryId,
+    String start,
+    String end,
+  ) async {
+    final List<Map<String, Object?>> rows = await db.rawQuery(
+      '''
+SELECT COALESCE(SUM(amount_minor), 0) AS total
+FROM transactions
+WHERE transaction_type = 'EXPENSE'
+  AND category_id = ?
+  AND local_date >= ? AND local_date <= ?
+''',
+      <Object?>[categoryId, start, end],
+    );
+    return rows.first['total']! as int;
+  }
+
   Future<List<Map<String, Object?>>> recent(
     DatabaseExecutor db, {
     int limit = 20,
-  }) {
-    return db.rawQuery(
+  }) {    return db.rawQuery(
       '''
 SELECT t.id AS id, t.transaction_type AS transaction_type,
        t.amount_minor AS amount_minor, t.fee_minor AS fee_minor,

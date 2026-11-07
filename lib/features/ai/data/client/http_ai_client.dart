@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:multi_wallet_tracker/features/ai/domain/ai_failure.dart';
 import 'package:multi_wallet_tracker/features/ai/domain/entities/ai_settings.dart';
+import 'package:multi_wallet_tracker/features/ai/domain/entities/ai_chat.dart';
 import 'package:multi_wallet_tracker/features/ai/domain/entities/quick_entry_suggestion.dart';
 import 'package:multi_wallet_tracker/features/ai/domain/services/ai_client.dart';
 import 'package:multi_wallet_tracker/features/transaction/domain/entities/transaction_type.dart';
@@ -77,6 +78,140 @@ Rules:
         'stream': false,
       },
     );
+  }
+
+  @override
+  Future<AiChatResponse> chat({
+    required List<AiChatMessage> messages,
+    required List<AiToolDefinition> tools,
+    required AiSettings settings,
+    required String apiKey,
+  }) async {
+    final http.Response response = await _post(
+      settings: settings,
+      apiKey: apiKey,
+      body: <String, Object?>{
+        'model': settings.model,
+        'messages': messages
+            .map(_messageToJson)
+            .toList(growable: false),
+        'tools': tools.map((AiToolDefinition tool) => tool.toJson()).toList(
+              growable: false,
+            ),
+        'tool_choice': 'auto',
+        'temperature': 0.1,
+        'max_tokens': 500,
+        'stream': false,
+      },
+    );
+    return _parseChatResponse(response.body);
+  }
+
+  Map<String, Object?> _messageToJson(AiChatMessage message) {
+    switch (message.role) {
+      case AiChatRole.system:
+      case AiChatRole.user:
+        return <String, Object?>{
+          'role': message.role.name,
+          'content': message.content ?? '',
+        };
+      case AiChatRole.assistant:
+        return <String, Object?>{
+          'role': 'assistant',
+          'content': message.content,
+          if (message.toolCalls.isNotEmpty)
+            'tool_calls': message.toolCalls
+                .map(
+                  (AiToolCall call) => <String, Object?>{
+                    'id': call.id,
+                    'type': 'function',
+                    'function': <String, Object?>{
+                      'name': call.name,
+                      'arguments': jsonEncode(call.arguments),
+                    },
+                  },
+                )
+                .toList(growable: false),
+        };
+      case AiChatRole.tool:
+        return <String, Object?>{
+          'role': 'tool',
+          'tool_call_id': message.toolCallId,
+          'content': message.content ?? '',
+        };
+    }
+  }
+
+  AiChatResponse _parseChatResponse(String responseBody) {
+    try {
+      final Object? decoded = jsonDecode(responseBody);
+      if (decoded is! Map<String, dynamic>) {
+        throw const FormatException('Response is not an object');
+      }
+      final Object? choices = decoded['choices'];
+      if (choices is! List || choices.isEmpty) {
+        throw const FormatException('No choices in response');
+      }
+      final Object? rawMessage =
+          (choices.first as Map<String, dynamic>)['message'];
+      if (rawMessage is! Map<String, dynamic>) {
+        throw const FormatException('No message in response');
+      }
+
+      final Object? rawContent = rawMessage['content'];
+      if (rawContent != null && rawContent is! String) {
+        throw const FormatException('Bad content');
+      }
+
+      final List<AiToolCall> calls = <AiToolCall>[];
+      final Object? rawCalls = rawMessage['tool_calls'];
+      if (rawCalls != null) {
+        if (rawCalls is! List) {
+          throw const FormatException('Bad tool calls');
+        }
+        for (final Object? item in rawCalls) {
+          if (item is! Map<String, dynamic>) {
+            throw const FormatException('Bad tool call');
+          }
+          final Object? id = item['id'];
+          final Object? function = item['function'];
+          if (id is! String || function is! Map<String, dynamic>) {
+            throw const FormatException('Bad tool call');
+          }
+          final Object? name = function['name'];
+          final Object? arguments = function['arguments'];
+          if (name is! String || arguments is! String) {
+            throw const FormatException('Bad tool call');
+          }
+          final Object? parsedArguments = jsonDecode(arguments);
+          if (parsedArguments is! Map<String, dynamic>) {
+            throw const FormatException('Bad tool arguments');
+          }
+          calls.add(
+            AiToolCall(
+              id: id,
+              name: name,
+              arguments: Map<String, Object?>.from(parsedArguments),
+            ),
+          );
+        }
+      }
+
+      final String? content =
+          rawContent is String ? rawContent.trim() : null;
+      if ((content == null || content.isEmpty) && calls.isEmpty) {
+        throw const FormatException('Empty assistant response');
+      }
+      return AiChatResponse(content: content, toolCalls: calls);
+    } on AiFailure {
+      rethrow;
+    } catch (error) {
+      throw AiFailure(
+        'The AI returned an unreadable chat response.',
+        kind: AiFailureKind.invalidResponse,
+        cause: error,
+      );
+    }
   }
 
   Future<http.Response> _post({

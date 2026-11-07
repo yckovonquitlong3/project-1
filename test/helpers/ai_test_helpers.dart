@@ -1,5 +1,6 @@
 import 'package:multi_wallet_tracker/features/ai/domain/entities/ai_mode.dart';
 import 'package:multi_wallet_tracker/features/ai/domain/entities/ai_settings.dart';
+import 'package:multi_wallet_tracker/features/ai/domain/entities/ai_chat.dart';
 import 'package:multi_wallet_tracker/features/ai/domain/entities/quick_entry_suggestion.dart';
 import 'package:multi_wallet_tracker/features/ai/domain/repositories/ai_settings_store.dart';
 import 'package:multi_wallet_tracker/features/ai/domain/services/ai_client.dart';
@@ -71,6 +72,9 @@ class FakeAiClient implements AiClient {
   Object? error;
   int parseCalls = 0;
   int testCalls = 0;
+  int chatCalls = 0;
+  AiChatResponse? chatResponse;
+  final List<AiChatResponse> chatResponses = <AiChatResponse>[];
 
   @override
   Future<QuickEntrySuggestion> parseQuickEntry({
@@ -83,6 +87,23 @@ class FakeAiClient implements AiClient {
       throw error!;
     }
     return suggestion!;
+  }
+
+  @override
+  Future<AiChatResponse> chat({
+    required List<AiChatMessage> messages,
+    required List<AiToolDefinition> tools,
+    required AiSettings settings,
+    required String apiKey,
+  }) async {
+    chatCalls++;
+    if (error != null) {
+      throw error!;
+    }
+    if (chatResponses.isNotEmpty) {
+      return chatResponses.removeAt(0);
+    }
+    return chatResponse ?? const AiChatResponse(content: 'No answer');
   }
 
   @override
